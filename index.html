@@ -1,178 +1,21 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tracecheck — Saved report</title>
-  <style>
-    :root { color-scheme: dark; --bg: #080b16; --surface: rgba(18,24,43,.78); --line: rgba(164,180,225,.18); --text: #f5f7ff; --muted: #9aa8c7; --mint: #74f5ca; --yellow: #ffd166; --red: #ff7890; --blue: #7ca7ff; }
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; background: radial-gradient(900px 500px at 8% -10%, #243d72 0%, transparent 62%), radial-gradient(700px 500px at 100% 10%, #173d46 0%, transparent 60%), var(--bg); color: var(--text); font: 15px/1.6 Inter, ui-sans-serif, system-ui, sans-serif; }
-    .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 80px; }
-    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .brand { display: flex; gap: 12px; align-items: center; font-weight: 800; }
-    .logo { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; background: linear-gradient(135deg, var(--mint), var(--blue)); color: #07101b; }
-    a { color: var(--mint); text-decoration: none; }
-    .panel { border: 1px solid var(--line); background: rgba(18,24,43,.78); border-radius: 18px; padding: 24px; }
-    .risk { display: inline-flex; align-items: center; gap: 10px; font-weight: 900; font-size: 1.2rem; }
-    .risk-dot { width: 12px; height: 12px; border-radius: 50%; background: currentColor; box-shadow: 0 0 18px currentColor; }
-    .low { color: var(--mint); }
-    .medium { color: var(--yellow); }
-    .high { color: var(--red); }
-    .meta { color: var(--muted); margin-top: 10px; }
-    .grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 18px; margin-top: 22px; }
-    .tag { display: inline-block; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--line); }
-    ul { color: var(--muted); padding-left: 18px; }
-    li { margin: 6px 0; }
-    .chip { display: inline-block; padding: 5px 8px; border-radius: 999px; border: 1px solid var(--line); margin: 4px 6px 4px 0; }
-    .muted { color: var(--muted); }
-    .chat-box { display: flex; flex-direction: column; gap: 10px; min-height: 160px; max-height: 260px; overflow: auto; padding-right: 4px; }
-    .bubble { max-width: 88%; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.02); }
-    .bubble.user { align-self: flex-end; background: rgba(116,245,202,.10); }
-    .bubble.ai { align-self: flex-start; }
-    .chat-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 12px; }
-    .chat-form input { width: 100%; background: rgba(11,15,26,.8); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; color: var(--text); }
-    .chat-form button { border: 0; border-radius: 10px; padding: 0 16px; background: var(--blue); color: #09101b; font-weight: 800; cursor: pointer; }
-    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .chat-form { grid-template-columns: 1fr; } }
-  </style>
-</head>
-<body>
-  <main class="wrap">
-    <div class="topbar">
-      <div class="brand"><span class="logo">⌁</span> tracecheck</div>
-      <div>
-        <a href="/">Back to scanner</a>
-        <span class="muted"> · </span>
-        <a href="/dashboard.html">Dashboard</a>
-      </div>
-    </div>
-
-    <section id="report-panel" class="panel">
-      <div id="report-content">Loading report…</div>
-    </section>
-
-    <section class="panel" style="margin-top: 24px;">
-      <h2>AI summary</h2>
-      <div id="chat-box" class="chat-box"></div>
-      <form id="chat-form" class="chat-form">
-        <input id="chat-input" type="text" placeholder="Ask about this scan…" autocomplete="off" />
-        <button type="submit">Ask</button>
-      </form>
-    </section>
-  </main>
-
-  <script>
-    const chatBox = document.querySelector('#chat-box');
-    const chatForm = document.querySelector('#chat-form');
-    const chatInput = document.querySelector('#chat-input');
-    let reportData = null;
-
-    function escapeHtml(value) {
-      return String(value).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
-    }
-
-    function renderRiskClass(level) {
-      return level === 'high' ? 'high' : level === 'medium' ? 'medium' : 'low';
-    }
-
-    function addChat(role, text) {
-      const div = document.createElement('div');
-      div.className = `bubble ${role}`;
-      div.innerHTML = escapeHtml(text).replace(/\n/g, '<br>');
-      chatBox.appendChild(div);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    async function loadReport() {
-      const params = new URLSearchParams(window.location.search);
-      const id = params.get('id');
-      const root = document.querySelector('#report-content');
-      if (!id) {
-        root.innerHTML = '<p class="muted">No report id provided.</p>';
-        return;
-      }
-
-      try {
-        const response = await fetch(`/api/report?id=${encodeURIComponent(id)}`);
-        const report = await response.json();
-        if (!response.ok) throw new Error(report.error || 'Report not found');
-        reportData = report;
-
-        const lvlClass = renderRiskClass(report.risk?.level || 'low');
-        const findings = (report.findings || []).map((item) => `
-          <div style="border-top: 1px solid rgba(164,180,225,.18); padding: 14px 0;">
-            <span class="tag ${lvlClass}">${escapeHtml(item.severity || 'low')}</span>
-            <b>${escapeHtml(item.name || 'Finding')}</b>
-            <p class="muted">${escapeHtml(item.category || 'Unknown')} · ${escapeHtml(item.detail || '')}</p>
-          </div>
-        `).join('') || '<p class="muted">No findings recorded.</p>';
-
-        const tech = (report.technologies || []).map((t) => `<span class="chip">${escapeHtml(t)}</span>`).join('') || '<span class="muted">No technologies detected</span>';
-        const headers = Object.entries(report.headers || {}).map(([key, value]) => `<li><b>${escapeHtml(key)}</b>: ${value ? escapeHtml(value) : 'not present'}</li>`).join('') || '<li>None recorded</li>';
-        const cookies = (report.cookies || []).map((cookie) => `<li><b>${escapeHtml(cookie.name)}</b> ${cookie.value ? `(${escapeHtml(cookie.value)})` : ''} · ${cookie.attributes.length ? escapeHtml(cookie.attributes.join(', ')) : 'no explicit attributes'}</li>`).join('') || '<li>No cookies recorded.</li>';
-        const domains = (report.externalDomains || []).length ? report.externalDomains.map((d) => `<li>${escapeHtml(d)}</li>`).join('') : '<li>None detected</li>';
-
-        root.innerHTML = `
-          <div class="risk ${lvlClass}"><span class="risk-dot"></span>${escapeHtml((report.risk?.level || 'low').toUpperCase())} RISK · ${escapeHtml(report.risk?.score || 0)}</div>
-          <div class="meta">${escapeHtml(report.url)}</div>
-          <div class="meta">Scanned: ${new Date(report.fetchedAt || report.createdAt).toLocaleString()}</div>
-          <div class="grid">
-            <div>
-              <h2>Findings</h2>
-              ${findings}
-            </div>
-            <div>
-              <h2>Detected technologies</h2>
-              ${tech}
-              <h2>Security headers</h2>
-              <div class="muted">${report.security?.present || 0}/${report.security?.total || 0} present · ${report.security?.score || 0}% coverage</div>
-              <ul>${headers}</ul>
-              <h2>Cookies</h2>
-              <ul>${cookies}</ul>
-              <h2>Third-party domains</h2>
-              <ul>${domains}</ul>
-            </div>
-          </div>
-        `;
-
-        chatBox.innerHTML = '';
-        addChat('ai', 'Ask me about this report. I can explain the trackers, risk level, cookies, headers, and what it suggests.');
-      } catch (error) {
-        root.innerHTML = `<p class="muted">${escapeHtml(error.message || 'Unable to load report.')}</p>`;
-      }
-    }
-
-    async function askAi(question) {
-      if (!reportData) {
-        addChat('user', question);
-        addChat('ai', 'No report is loaded yet.');
-        return;
-      }
-
-      addChat('user', question);
-      chatInput.value = '';
-
-      try {
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ question, summary: reportData })
-        });
-        const data = await response.json();
-        addChat('ai', data.answer || 'No answer returned.');
-      } catch {
-        addChat('ai', 'The AI assistant is currently unavailable.');
-      }
-    }
-
-    chatForm.addEventListener('submit', (event) => {
-      event.preventDefault();
-      const value = chatInput.value.trim();
-      if (!value) return;
-      askAi(value);
-    });
-
-    loadReport();
-  </script>
-</body>
-</html>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tracecheck — Privacy scanner</title>
+<style>
+:root{color-scheme:dark;--bg:#080b16;--panel:#12182b;--line:#283653;--text:#f4f7ff;--muted:#9aa8c7;--mint:#74f5ca;--blue:#7ca7ff;--yellow:#ffd166;--red:#ff7890}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(900px 500px at 5% -10%,#243d72,transparent 60%),radial-gradient(700px 500px at 100% 10%,#173d46,transparent 60%),var(--bg);color:var(--text);font:15px/1.6 system-ui,sans-serif}.wrap{max-width:1150px;margin:auto;padding:24px 20px 80px}.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:70px}.brand{font-weight:850;display:flex;align-items:center;gap:10px}.logo{display:grid;place-items:center;width:35px;height:35px;border-radius:11px;background:linear-gradient(135deg,var(--mint),var(--blue));color:#07131a}.links{display:flex;gap:16px}.links a,a{color:var(--mint);text-decoration:none}.hero{max-width:850px}.eyebrow{color:var(--mint);font-size:.74rem;letter-spacing:.16em;font-weight:800}.hero h1{font-size:clamp(3rem,8vw,6.5rem);letter-spacing:-.08em;line-height:.94;margin:15px 0 20px;background:linear-gradient(110deg,#fff,#aec2ff,var(--mint));-webkit-background-clip:text;color:transparent}.lead{color:var(--muted);font-size:1.18rem;max-width:720px}.panel{background:rgba(18,24,43,.82);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 20px 70px #0004}.scan-panel{margin-top:35px;max-width:850px}.scan-form{display:grid;grid-template-columns:1fr 170px;gap:8px}.input,.scan-form button,.chat-form input{border:1px solid var(--line);border-radius:10px;padding:13px 14px;font:inherit;color:var(--text);background:#0b1020}.scan-form button,.chat-form button{border:0;background:var(--mint);color:#07131a;font-weight:850;cursor:pointer}.note,.muted{color:var(--muted);font-size:.85rem}.layout{display:grid;grid-template-columns:1.4fr .8fr;gap:22px;margin-top:35px}.section-title{display:flex;align-items:center;justify-content:space-between;gap:12px}.result{margin-top:20px}.hidden{display:none!important}.risk{font-weight:900;display:flex;align-items:center;gap:10px}.dot{width:11px;height:11px;border-radius:50%;background:currentColor;box-shadow:0 0 15px currentColor}.low{color:var(--mint)}.medium{color:var(--yellow)}.high{color:var(--red)}.result-head{display:flex;justify-content:space-between;gap:15px;border-bottom:1px solid var(--line);padding-bottom:15px}.columns{display:grid;grid-template-columns:1.2fr 1fr;gap:30px}.finding{border-top:1px solid var(--line);padding:13px 0}.tag,.chip{display:inline-block;border:1px solid currentColor;border-radius:99px;padding:3px 8px;font-size:.72rem;margin-right:7px}.chip{border-color:var(--line);margin:4px;color:var(--text)}ul{padding-left:19px;color:var(--muted)}li{margin:5px 0;word-break:break-word}.history{list-style:none;padding:0}.history li{border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0}.history a{display:block;color:var(--text);font-weight:700}.chat{margin-top:22px}.chat-box{min-height:130px;max-height:300px;overflow:auto;display:flex;flex-direction:column;gap:9px}.bubble{max-width:90%;padding:10px 12px;border:1px solid var(--line);border-radius:13px;color:var(--muted)}.bubble.user{align-self:flex-end;background:#74f5ca18;color:var(--text)}.chat-form{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:12px}.chat-form button{background:var(--blue);padding:0 18px}.features{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:55px}.feature{padding:20px;border:1px solid var(--line);border-radius:15px;background:#0f1527aa}@media(max-width:800px){.layout,.columns,.features{grid-template-columns:1fr}}@media(max-width:600px){.nav{display:block}.links{margin-top:14px}.scan-form,.chat-form{grid-template-columns:1fr}.scan-form button{height:48px}}
+</style></head>
+<body><main class="wrap">
+<nav class="nav"><div class="brand"><span class="logo">⌁</span> tracecheck</div><div class="links"><a href="#ai">AI assistant</a><a href="/dashboard.html">Dashboard</a><a href="/history.html">History</a></div></nav>
+<section class="hero"><div class="eyebrow">PRIVACY, MADE VISIBLE</div><h1>See what websites expose.</h1><p class="lead">Inspect a public website for trackers, cookies, fingerprinting signals, third-party resources, technologies, and security headers.</p><div class="panel scan-panel"><form id="scan-form" class="scan-form"><input id="url" class="input" required placeholder="https://example.com" autocomplete="url"><button>Scan website →</button></form><input id="requester" class="input" style="width:100%;margin-top:8px" maxlength="80" placeholder="Your name (optional)"><p class="note">Private targets are blocked. Results are evidence, not a legal verdict.</p></div></section>
+<div class="layout"><section><div id="output" class="panel result hidden"></div><section id="ai" class="panel chat"><div class="section-title"><h2>AI privacy assistant</h2><span class="note">Ask about the latest scan</span></div><div id="chat-box" class="chat-box"><div class="bubble">Run a scan, then ask me to explain its findings.</div></div><form id="chat-form" class="chat-form"><input id="chat-input" placeholder="Why is this site risky?" autocomplete="off"><button>Ask</button></form></section></section><aside class="panel"><div class="section-title"><h2>Recent scans</h2><a href="/history.html">See all</a></div><ul id="history" class="history"><li class="muted">Loading…</li></ul></aside></div>
+<section class="features"><article class="feature"><b>◉ Tracker detection</b><p class="muted">Analytics, advertising, replay, and fingerprinting signals.</p></article><article class="feature"><b>⌘ Evidence</b><p class="muted">Cookies, domains, technologies, and security headers.</p></article><article class="feature"><b>◈ Saved reports</b><p class="muted">Open reports later from the dashboard or history page.</p></article></section></main>
+<script>
+let latest=null;const $=s=>document.querySelector(s),out=$('#output'),chat=$('#chat-box');
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const level=v=>v==='high'?'high':v==='medium'?'medium':'low';
+function add(role,text){const d=document.createElement('div');d.className='bubble '+role;d.innerHTML=esc(text).replace(/\n/g,'<br>');chat.appendChild(d);chat.scrollTop=chat.scrollHeight}
+async function history(){try{const r=await fetch('/api/history?limit=5'),d=await r.json();$('#history').innerHTML=(d.reports||[]).map(x=>`<li><a href="/report.html?id=${encodeURIComponent(x.id)}">${esc(x.url)}</a><small class="muted">${esc(x.risk?.level||'unknown')} · ${new Date(x.fetchedAt||x.createdAt).toLocaleString()}</small></li>`).join('')||'<li class="muted">No scans yet.</li>'}catch{$('#history').innerHTML='<li class="muted">History unavailable.</li>'}}
+$('#scan-form').addEventListener('submit',async e=>{e.preventDefault();out.classList.remove('hidden');out.innerHTML='<p class="muted">Scanning safely…</p>';out.scrollIntoView({behavior:'smooth'});try{const r=await fetch('/api/scan',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:$('#url').value.trim(),requester:$('#requester').value.trim()})}),d=await r.json();if(!r.ok)throw Error(d.error);latest=d;const f=(d.findings||[]).map(x=>`<div class="finding"><span class="tag ${level(x.severity)}">${esc(x.severity)}</span><b>${esc(x.name)}</b><p class="muted">${esc(x.category)}: ${esc(x.detail)}</p></div>`).join('')||'<p class="muted">No known signals found.</p>';const t=(d.technologies||[]).map(x=>`<span class="chip">${esc(x)}</span>`).join('')||'<span class="muted">None detected</span>';const h=Object.entries(d.headers||{}).map(([k,v])=>`<li><b>${esc(k)}</b>: ${v?esc(v):'not present'}</li>`).join('');out.innerHTML=`<div class="result-head"><div><div class="eyebrow">SCAN COMPLETE</div><p class="muted">${esc(d.url)}</p></div><div class="risk ${level(d.risk.level)}"><span class="dot"></span>${d.risk.level.toUpperCase()} · ${d.risk.score}</div></div><p class="note"><a href="/report.html?id=${encodeURIComponent(d.reportId||d.id)}">Open saved report →</a> · HTTP ${d.status}</p><div class="columns"><div><h3>Findings (${d.findings.length})</h3>${f}</div><div><h3>Technologies</h3>${t}<h3>Security headers</h3><p class="note">${d.security.present}/${d.security.total} present · ${d.security.score}%</p><ul>${h||'<li>None recorded</li>'}</ul><h3>Third-party domains</h3><ul>${(d.externalDomains||[]).map(x=>`<li>${esc(x)}</li>`).join('')||'<li>None detected</li>'}</ul></div></div>`;chat.innerHTML='';add('ai','Scan loaded. Ask me about its trackers, risk, cookies, headers, or what to do next.');await history()}catch(err){out.innerHTML=`<div class="risk high"><span class="dot"></span>Scan failed</div><p>${esc(err.message)}</p>`}});
+$('#chat-form').addEventListener('submit',async e=>{e.preventDefault();const q=$('#chat-input').value.trim();if(!q)return;add('user',q);$('#chat-input').value='';if(!latest){add('ai','Run a website scan first so I have evidence to discuss.');return}try{const r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({question:q,summary:latest})}),d=await r.json();add('ai',d.answer||'No answer returned.')}catch{add('ai','The assistant is unavailable right now.')}});history();
+</script></body></html>
