@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tracecheck — Recent reports</title>
+  <style>
+    :root { color-scheme: dark; --bg: #080b16; --surface: rgba(18,24,43,.78); --line: rgba(164,180,225,.18); --text: #f5f7ff; --muted: #9aa8c7; --mint: #74f5ca; --blue: #7ca7ff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(900px 500px at 8% -10%, #243d72 0%, transparent 62%), radial-gradient(700px 500px at 100% 10%, #173d46 0%, transparent 60%), var(--bg); color: var(--text); font: 15px/1.6 Inter, ui-sans-serif, system-ui, sans-serif; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 32px 20px 72px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 28px; }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; }
+    .logo { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; background: linear-gradient(135deg, var(--mint), var(--blue)); color: #07101b; }
+    .panel { border: 1px solid var(--line); background: rgba(18,24,43,.78); border-radius: 18px; padding: 24px; }
+    .report-list { list-style: none; padding: 0; margin: 0; }
+    .report-list li { border: 1px solid var(--line); padding: 14px 12px; border-radius: 12px; margin-bottom: 10px; background: rgba(255,255,255,.02); }
+    .report-list a { color: var(--text); font-weight: 700; text-decoration: none; }
+    .report-list small { display: block; margin-top: 4px; color: var(--muted); }
+    .muted { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="topbar">
+      <div class="brand"><span class="logo">⌁</span> tracecheck</div>
+      <a href="/" class="muted">Back to scanner</a>
+    </div>
+    <section class="panel">
+      <h2>Recent reports</h2>
+      <ul id="report-list" class="report-list"></ul>
+    </section>
+  </main>
+
+  <script>
+    async function loadReports() {
+      const list = document.querySelector('#report-list');
+      try {
+        const response = await fetch('/api/history?limit=20');
+        const data = await response.json();
+        const reports = data.reports || [];
+        if (!reports.length) {
+          list.innerHTML = '<li><span class="muted">No saved reports yet.</span></li>';
+          return;
+        }
+
+        list.innerHTML = reports.map((report) => `
+          <li>
+            <a href="/report.html?id=${encodeURIComponent(report.id)}">${escapeHtml(report.url)}</a>
+            <small>${escapeHtml(report.risk?.level || 'unknown')} · ${new Date(report.fetchedAt || report.createdAt).toLocaleString()}</small>
+          </li>
+        `).join('');
+      } catch {
+        list.innerHTML = '<li><span class="muted">Unable to load reports.</span></li>';
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+    }
+
+    loadReports();
+  </script>
+</body>
+</html>
