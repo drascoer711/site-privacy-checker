@@ -1,0 +1,50 @@
+# Tracecheck
+
+Tracecheck is a privacy-first website scanner. It checks public HTML and response headers for tracker signals, fingerprinting APIs, cookies, third-party resources, detected technologies, and security headers.
+
+## New in this version
+
+- Browser-assisted scan with Playwright fallback
+- Report persistence via local JSON store in development
+- Report history endpoint
+- Report lookup by ID
+- Optional OpenAI-backed chat assistant grounded in the latest scan
+- Discord webhook notification for scan events
+- Graceful fallback when AI is not configured
+
+## Environment variables
+
+Add these in Vercel under Project Settings → Environment Variables:
+
+```text
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+OPENAI_API_KEY=your_key_here
+OPENAI_MODEL=gpt-4o-mini
+```
+
+## Local run
+
+```bash
+npm install
+npx playwright install chromium
+npx vercel dev
+```
+
+Then open:
+
+```text
+http://localhost:3000
+```
+
+## Endpoints
+
+```text
+POST /api/scan
+GET /api/history?limit=10
+GET /api/report?id=<report-id>
+POST /api/chat
+```
+
+## Safety
+
+This tool does not execute JavaScript in the default path unless Playwright is successfully available in the environment. It blocks credentials, localhost, private/reserved IPs, non-HTTP protocols, and oversized responses. It is intended as evidence-based analysis, not proof of how a website stores or uses data.
