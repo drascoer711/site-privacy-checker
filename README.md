@@ -3,108 +3,270 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tracecheck — Saved report</title>
+  <meta name="description" content="Privacy-first website scanner with saved reports, history, and AI explanations." />
+  <title>Tracecheck — Privacy scanner</title>
   <style>
-    :root { color-scheme: dark; --bg: #080b16; --surface: rgba(18,24,43,.78); --line: rgba(164,180,225,.18); --text: #f5f7ff; --muted: #9aa8c7; --mint: #74f5ca; --yellow: #ffd166; --red: #ff7890; }
+    :root{
+      color-scheme: dark;
+      --bg: #080b16;
+      --surface: rgba(18,24,43,.78);
+      --surface-2: #151d35;
+      --line: rgba(164,180,225,.18);
+      --text: #f5f7ff;
+      --muted: #9aa8c7;
+      --mint: #74f5ca;
+      --blue: #7ca7ff;
+      --yellow: #ffd166;
+      --red: #ff7890;
+      --shadow: 0 24px 80px rgba(0,0,0,.35);
+    }
     * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; background: radial-gradient(900px 500px at 8% -10%, #243d72 0%, transparent 62%), radial-gradient(700px 500px at 100% 10%, #173d46 0%, transparent 60%), var(--bg); color: var(--text); font: 15px/1.6 Inter, ui-sans-serif, system-ui, sans-serif; }
-    .wrap { max-width: 980px; margin: 0 auto; padding: 32px 20px 80px; }
-    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .brand { display: flex; gap: 12px; align-items: center; font-weight: 800; }
-    .logo { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; background: linear-gradient(135deg, var(--mint), #7ca7ff); color: #07101b; }
-    .panel { border: 1px solid var(--line); background: rgba(18,24,43,.78); border-radius: 18px; padding: 24px; }
-    .risk { display: inline-flex; align-items: center; gap: 10px; font-weight: 900; font-size: 1.2rem; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(900px 500px at 8% -10%, #243d72 0%, transparent 62%), radial-gradient(700px 500px at 100% 10%, #173d46 0%, transparent 60%), var(--bg);
+      color: var(--text);
+      font: 15px/1.6 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: var(--mint); text-decoration: none; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 28px 20px 80px; }
+    .nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 64px; }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 1.15rem; }
+    .logo { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 11px; background: linear-gradient(135deg, var(--mint), var(--blue)); color: #07101b; box-shadow: 0 8px 26px #74f5ca44; }
+    .top-links { display: flex; gap: 16px; align-items: center; }
+    .eyebrow { color: var(--mint); font-size: .75rem; letter-spacing: .16em; font-weight: 800; }
+    .hero { max-width: 860px; }
+    .hero h1 {
+      margin: 16px 0 20px;
+      font-size: clamp(3.2rem, 8vw, 6.5rem);
+      letter-spacing: -.085em;
+      line-height: .93;
+      background: linear-gradient(110deg, #fff 20%, #a9c0ff 56%, var(--mint));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .lead { color: var(--muted); font-size: 1.18rem; max-width: 720px; }
+    .scan-card { margin-top: 38px; padding: 9px; border: 1px solid var(--line); background: linear-gradient(135deg, rgba(124,167,255,.13), rgba(116,245,202,.06)); border-radius: 18px; box-shadow: var(--shadow); }
+    .form { display: grid; grid-template-columns: 1fr 180px; gap: 8px; background: var(--surface); padding: 8px; border-radius: 14px; }
+    .form input, .field { width: 100%; background: rgba(11,15,26,.8); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; color: var(--text); }
+    .form input::placeholder { color: #7180a0; }
+    .form button, .secondary-btn, .mini-btn { border: 0; border-radius: 10px; cursor: pointer; font-weight: 800; }
+    .form button { background: var(--mint); color: #07131a; padding: 0 24px; height: 50px; }
+    .secondary-btn { background: rgba(124,167,255,.18); color: var(--text); padding: 12px 16px; }
+    .mini-btn { border: 1px solid var(--line); background: rgba(255,255,255,.03); color: var(--text); padding: 8px 12px; }
+    .input-row { margin-top: 8px; }
+    .privacy-note { color: var(--muted); font-size: .82rem; padding: 8px 12px 2px; }
+    .layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, .8fr); gap: 26px; margin-top: 42px; }
+    .panel { border: 1px solid var(--line); background: var(--surface); border-radius: 18px; padding: 22px; box-shadow: var(--shadow); }
+    .panel h2 { margin: 0 0 14px; font-size: 1rem; }
+    .feature-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 54px; }
+    .feature { padding: 22px; border: 1px solid var(--line); border-radius: 16px; background: rgba(15,21,39,.55); }
+    .feature-icon { font-size: 1.5rem; }
+    .feature h3 { margin: 12px 0 5px; font-size: 1rem; }
+    .feature p { margin: 0; color: var(--muted); font-size: .9rem; }
+    .result { margin-top: 26px; padding: 24px; border: 1px solid var(--line); background: var(--surface); border-radius: 20px; box-shadow: var(--shadow); }
+    .hidden { display: none !important; }
+    .result-head { display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid var(--line); padding-bottom: 18px; }
+    .result-head p { color: var(--muted); margin: 4px 0 0; word-break: break-all; }
+    .risk { display: flex; align-items: center; gap: 12px; font-weight: 900; font-size: 1.2rem; }
     .risk-dot { width: 12px; height: 12px; border-radius: 50%; background: currentColor; box-shadow: 0 0 18px currentColor; }
     .low { color: var(--mint); }
     .medium { color: var(--yellow); }
     .high { color: var(--red); }
-    .meta { color: var(--muted); margin-top: 10px; }
-    .grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 18px; margin-top: 22px; }
-    .tag { display: inline-block; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--line); }
-    ul { color: var(--muted); padding-left: 18px; }
-    li { margin: 6px 0; }
-    .chip { display: inline-block; padding: 5px 8px; border-radius: 999px; border: 1px solid var(--line); margin: 4px 6px 4px 0; }
-    a { color: var(--mint); }
-    .muted { color: var(--muted); }
-    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+    .button-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .columns { display: grid; grid-template-columns: 1.25fr 1fr; gap: 32px; }
+    .finding { border-top: 1px solid var(--line); padding: 15px 0; }
+    .tag { display: inline-block; font-size: .7rem; border: 1px solid currentColor; border-radius: 999px; padding: 3px 8px; margin-right: 8px; text-transform: uppercase; font-weight: 800; letter-spacing: .06em; }
+    .finding b { font-size: .95rem; }
+    .finding p { color: var(--muted); font-size: .86rem; margin: 5px 0 0; }
+    .chip { display: inline-block; padding: 5px 9px; margin: 4px 6px 4px 0; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,.02); color: var(--text); }
+    ul { padding-left: 18px; color: var(--muted); }
+    li { margin: 5px 0; word-break: break-word; }
+    .history-list { list-style: none; padding: 0; margin: 0; }
+    .history-list li { border: 1px solid var(--line); background: rgba(255,255,255,.02); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+    .history-list a { display: block; color: var(--text); font-weight: 700; }
+    .history-list small { color: var(--muted); }
+    .loading { color: var(--muted); display: flex; align-items: center; gap: 10px; }
+    .spinner { width: 17px; height: 17px; border-radius: 50%; border: 2px solid #ffffff33; border-top-color: var(--mint); animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 900px) { .layout, .feature-grid, .columns { grid-template-columns: 1fr; } }
+    @media (max-width: 640px) { .form { grid-template-columns: 1fr; } .form button { width: 100%; } .nav { display: block; } }
   </style>
 </head>
 <body>
   <main class="wrap">
-    <div class="topbar">
+    <nav class="nav">
       <div class="brand"><span class="logo">⌁</span> tracecheck</div>
-      <a href="/" class="muted">Back to scanner</a>
+      <div class="top-links">
+        <a href="/dashboard.html">Dashboard</a>
+        <a href="/history.html">Recent reports</a>
+        <a href="https://github.com/drascoer711/site-privacy-checker" target="_blank" rel="noreferrer">Source↗</a>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div class="eyebrow">PRIVACY, MADE VISIBLE</div>
+      <h1>See what websites expose.</h1>
+      <p class="lead">Scan a public page for trackers, cookies, fingerprinting signals, third-party resources, technologies, and security headers. Save scans and revisit them in the dashboard.</p>
+
+      <div class="scan-card">
+        <form class="form" id="scan-form">
+          <input id="url" type="text" placeholder="Paste a website URL…" autocomplete="url" required />
+          <button type="submit">Scan website →</button>
+        </form>
+        <div class="input-row">
+          <input id="requester" class="field" type="text" placeholder="Your name (optional)" maxlength="80" />
+        </div>
+        <div class="privacy-note">✓ No JavaScript execution · ✓ Private targets blocked · ✓ Saved report history · ✓ AI explanations</div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <section>
+        <div id="output" class="result hidden"></div>
+      </section>
+
+      <aside class="panel">
+        <h2>Recent reports</h2>
+        <ul id="history-list" class="history-list"></ul>
+        <div style="margin-top: 12px;">
+          <a href="/history.html">Open full history</a>
+          <span style="color: var(--muted);"> · </span>
+          <a href="/dashboard.html">Dashboard</a>
+        </div>
+      </aside>
     </div>
-    <section id="report-panel" class="panel">
-      <div id="report-content">Loading report…</div>
+
+    <section class="feature-grid">
+      <article class="feature"><div class="feature-icon">◉</div><h3>Tracker signals</h3><p>Find common analytics, ads, session replay, and fingerprinting libraries.</p></article>
+      <article class="feature"><div class="feature-icon">⌘</div><h3>Evidence first</h3><p>See the exact findings, cookies, headers, and domains behind the result.</p></article>
+      <article class="feature"><div class="feature-icon">◈</div><h3>AI + dashboard</h3><p>Ask the AI to explain the latest report and monitor the health of your scanning activity.</p></article>
     </section>
   </main>
 
   <script>
-    function escapeHtml(value) {
-      return String(value).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
-    }
+    const scanForm = document.querySelector('#scan-form');
+    const output = document.querySelector('#output');
+    const historyList = document.querySelector('#history-list');
 
     function renderRiskClass(level) {
       return level === 'high' ? 'high' : level === 'medium' ? 'medium' : 'low';
     }
 
-    async function loadReport() {
-      const params = new URLSearchParams(window.location.search);
-      const id = params.get('id');
-      const root = document.querySelector('#report-content');
-      if (!id) {
-        root.innerHTML = '<p class="muted">No report id provided.</p>';
-        return;
-      }
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+    }
 
+    async function loadRecentReports() {
       try {
-        const response = await fetch(`/api/report?id=${encodeURIComponent(id)}`);
-        const report = await response.json();
-        if (!response.ok) throw new Error(report.error || 'Report not found');
+        const response = await fetch('/api/history?limit=5');
+        const data = await response.json();
+        const reports = data.reports || [];
+        if (!reports.length) {
+          historyList.innerHTML = '<li><small>No saved reports yet.</small></li>';
+          return;
+        }
 
-        const lvlClass = renderRiskClass(report.risk?.level || 'low');
-        const findings = (report.findings || []).map((item) => `
-          <div style="border-top: 1px solid rgba(164,180,225,.18); padding: 14px 0;">
-            <span class="tag ${lvlClass}">${escapeHtml(item.severity || 'low')}</span>
-            <b>${escapeHtml(item.name || 'Finding')}</b>
-            <p class="muted">${escapeHtml(item.category || 'Unknown')} · ${escapeHtml(item.detail || '')}</p>
-          </div>
-        `).join('') || '<p class="muted">No findings recorded.</p>';
-
-        const tech = (report.technologies || []).map((t) => `<span class="chip">${escapeHtml(t)}</span>`).join('') || '<span class="muted">No technologies detected</span>';
-        const headers = Object.entries(report.headers || {}).map(([key, value]) => `<li><b>${escapeHtml(key)}</b>: ${value ? escapeHtml(value) : 'not present'}</li>`).join('') || '<li>None recorded</li>';
-        const cookies = (report.cookies || []).map((cookie) => `<li><b>${escapeHtml(cookie.name)}</b> ${cookie.value ? `(${escapeHtml(cookie.value)})` : ''} · ${cookie.attributes.length ? escapeHtml(cookie.attributes.join(', ')) : 'no explicit attributes'}</li>`).join('') || '<li>No cookies recorded.</li>';
-        const domains = (report.externalDomains || []).length ? report.externalDomains.map((d) => `<li>${escapeHtml(d)}</li>`).join('') : '<li>None detected</li>';
-
-        root.innerHTML = `
-          <div class="risk ${lvlClass}"><span class="risk-dot"></span>${escapeHtml((report.risk?.level || 'low').toUpperCase())} RISK · ${escapeHtml(report.risk?.score || 0)}</div>
-          <div class="meta">${escapeHtml(report.url)}</div>
-          <div class="meta">Scanned: ${new Date(report.fetchedAt || report.createdAt).toLocaleString()}</div>
-          <div class="grid">
-            <div>
-              <h2>Findings</h2>
-              ${findings}
-            </div>
-            <div>
-              <h2>Detected technologies</h2>
-              ${tech}
-              <h2>Security headers</h2>
-              <div class="muted">${report.security?.present || 0}/${report.security?.total || 0} present · ${report.security?.score || 0}% coverage</div>
-              <ul>${headers}</ul>
-              <h2>Cookies</h2>
-              <ul>${cookies}</ul>
-              <h2>Third-party domains</h2>
-              <ul>${domains}</ul>
-            </div>
-          </div>
-        `;
-      } catch (error) {
-        root.innerHTML = `<p class="muted">${escapeHtml(error.message || 'Unable to load report.')}</p>`;
+        historyList.innerHTML = reports.map((report) => `
+          <li>
+            <a href="/report.html?id=${encodeURIComponent(report.id)}">${escapeHtml(report.url)}</a>
+            <small>${escapeHtml(report.risk?.level || 'unknown')} · ${new Date(report.fetchedAt || report.createdAt).toLocaleString()}</small>
+          </li>
+        `).join('');
+      } catch {
+        historyList.innerHTML = '<li><small>History unavailable.</small></li>';
       }
     }
 
-    loadReport();
+    async function copyReport(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    scanForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      output.classList.remove('hidden');
+      output.innerHTML = '<div class="loading"><span class="spinner"></span> Inspecting the page safely…</div>';
+      output.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      const url = document.querySelector('#url').value.trim();
+      const requester = document.querySelector('#requester').value.trim();
+
+      try {
+        const response = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ url, requester })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'The scan failed.');
+
+        const reportId = data.reportId || data.id;
+        const riskClass = renderRiskClass(data.risk.level);
+        const techHtml = data.technologies && data.technologies.length ? data.technologies.map((t) => `<span class="chip">${escapeHtml(t)}</span>`).join('') : '<span class="hint">No obvious technologies detected</span>';
+        const headerHtml = Object.entries(data.headers || {}).map(([key, value]) => `<li><b>${escapeHtml(key)}</b>: ${value ? escapeHtml(value) : 'not present'}</li>`).join('') || '<li>No headers recorded</li>';
+        const cookieHtml = data.cookies && data.cookies.length ? data.cookies.map((cookie) => `<li><b>${escapeHtml(cookie.name)}</b> ${cookie.value ? `(${escapeHtml(cookie.value)})` : ''} · ${cookie.attributes.length ? escapeHtml(cookie.attributes.join(', ')) : 'no explicit attributes'}</li>`).join('') : '<li>No cookies detected in the response</li>';
+        const findingsHtml = data.findings && data.findings.length ? data.findings.map((finding) => {
+          const cls = renderRiskClass(finding.severity === 'high' ? 'high' : finding.severity === 'medium' ? 'medium' : 'low');
+          return `<div class="finding"><span class="tag ${cls}">${escapeHtml(finding.severity)}</span><b>${escapeHtml(finding.name)}</b><p>${escapeHtml(finding.category)}: ${escapeHtml(finding.detail)}</p></div>`;
+        }).join('') : '<div class="finding"><p>No known tracking patterns were found in the inspected HTML.</p></div>';
+        const reportText = JSON.stringify({ url: data.url, risk: data.risk, findings: data.findings, externalDomains: data.externalDomains, technologies: data.technologies, cookies: data.cookies, headers: data.headers, fetchedAt: data.fetchedAt }, null, 2);
+
+        output.innerHTML = `
+          <div class="result-head">
+            <div>
+              <div class="eyebrow">SCAN COMPLETE</div>
+              <p>${escapeHtml(data.url)}</p>
+            </div>
+            <div class="risk ${riskClass}"><span class="risk-dot"></span>${data.risk.level.toUpperCase()} RISK · ${data.risk.score}</div>
+          </div>
+          <div class="button-row">
+            <button class="mini-btn" type="button" data-copy="${escapeHtml(reportText)}">Copy report</button>
+            ${reportId ? `<a class="mini-btn" href="/report.html?id=${encodeURIComponent(reportId)}">View saved report</a>` : ''}
+            <span class="hint">HTTP ${data.status}${data.truncated ? ' · response truncated' : ''}</span>
+          </div>
+          <div class="columns">
+            <div>
+              <h2>Findings (${data.findings.length})</h2>
+              ${findingsHtml}
+            </div>
+            <div>
+              <h2>Detected technologies</h2>
+              ${techHtml}
+              <h2>Security headers</h2>
+              <div class="hint">${data.security.present}/${data.security.total} present · ${data.security.score}% coverage</div>
+              <ul>${headerHtml}</ul>
+              <h2>Cookies</h2>
+              <ul>${cookieHtml}</ul>
+              <h2>Third-party domains</h2>
+              <ul>${data.externalDomains && data.externalDomains.length ? data.externalDomains.map((x) => `<li>${escapeHtml(x)}</li>`).join('') : '<li>None detected</li>'}</ul>
+            </div>
+          </div>
+        `;
+
+        const copyButton = output.querySelector('[data-copy]');
+        if (copyButton) {
+          copyButton.addEventListener('click', async () => {
+            const ok = await copyReport(copyButton.dataset.copy || reportText);
+            copyButton.textContent = ok ? 'Copied!' : 'Copy failed';
+            setTimeout(() => copyButton.textContent = 'Copy report', 1500);
+          });
+        }
+
+        await loadRecentReports();
+      } catch (error) {
+        output.innerHTML = `<div class="risk high"><span class="risk-dot"></span> Scan failed</div><p>${escapeHtml(error.message)}</p>`;
+      }
+    });
+
+    loadRecentReports();
   </script>
 </body>
 </html>
