@@ -1,16 +1,169 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="A privacy-first website scanner for trackers, cookies, fingerprinting signals, and external resources.">
-  <title>Tracecheck — See what websites expose</title>
-  <style>
-    :root{color-scheme:dark;--bg:#080b16;--surface:rgba(18,24,43,.78);--surface-2:#151d35;--line:rgba(164,180,225,.18);--text:#f5f7ff;--muted:#9aa8c7;--mint:#74f5ca;--blue:#7ca7ff;--yellow:#ffd166;--red:#ff7890;--shadow:0 24px 80px rgba(0,0,0,.35)}
-    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;background:radial-gradient(900px 500px at 8% -10%,#243d72 0%,transparent 62%),radial-gradient(700px 500px at 100% 10%,#173d46 0%,transparent 60%),var(--bg);color:var(--text);font:15px/1.6 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{max-width:1080px;margin:auto;padding:28px 22px 70px}.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:86px}.brand{display:flex;align-items:center;gap:11px;font-weight:800;letter-spacing:-.03em;font-size:1.15rem}.logo{width:34px;height:34px;display:grid;place-items:center;border-radius:11px;background:linear-gradient(135deg,var(--mint),var(--blue));color:#07101b;box-shadow:0 8px 26px #74f5ca44}.nav a{color:var(--muted);text-decoration:none}.eyebrow{color:var(--mint);font-size:.75rem;letter-spacing:.16em;font-weight:800}.hero{max-width:790px}.hero h1{font-size:clamp(3.2rem,8vw,6.7rem);letter-spacing:-.085em;line-height:.93;margin:16px 0 25px;background:linear-gradient(110deg,#fff 20%,#a9c0ff 56%,var(--mint));-webkit-background-clip:text;background-clip:text;color:transparent}.hero .lead{font-size:1.2rem;color:var(--muted);max-width:680px}.scan-card{margin-top:42px;padding:9px;border:1px solid var(--line);background:linear-gradient(135deg,rgba(124,167,255,.13),rgba(116,245,202,.06));border-radius:20px;box-shadow:var(--shadow);max-width:800px}.form{display:flex;gap:8px;background:var(--surface);padding:8px;border-radius:14px}.form input{min-width:0;flex:1;background:transparent;border:0;outline:0;color:var(--text);font:inherit;padding:13px 14px}.form input::placeholder{color:#7180a0}.form button{border:0;border-radius:10px;padding:0 24px;background:var(--mint);color:#07131a;font-weight:850;cursor:pointer;transition:.2s transform,.2s filter}.form button:hover{filter:brightness(1.08);transform:translateY(-1px)}.privacy-note{padding:5px 12px 1px;color:var(--muted);font-size:.82rem}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:90px}.feature{padding:22px;border:1px solid var(--line);border-radius:16px;background:rgba(15,21,39,.55)}.feature-icon{font-size:1.5rem}.feature h3{margin:12px 0 5px;font-size:1rem}.feature p{margin:0;color:var(--muted);font-size:.9rem}.result{margin-top:28px;padding:28px;border:1px solid var(--line);border-radius:20px;background:var(--surface);box-shadow:var(--shadow)}.hidden{display:none}.risk{display:flex;align-items:center;gap:12px;font-weight:900;font-size:1.2rem}.risk-dot{width:12px;height:12px;border-radius:50%;background:currentColor;box-shadow:0 0 18px currentColor}.low{color:var(--mint)}.medium{color:var(--yellow)}.high{color:var(--red)}.result-head{display:flex;align-items:center;justify-content:space-between;gap:15px;border-bottom:1px solid var(--line);padding-bottom:18px}.result-head p{color:var(--muted);margin:4px 0 0;word-break:break-all}.columns{display:grid;grid-template-columns:1.3fr 1fr;gap:34px}.finding{border-top:1px solid var(--line);padding:15px 0}.tag{font-size:.7rem;border:1px solid currentColor;border-radius:99px;padding:3px 8px;margin-right:8px;text-transform:uppercase;font-weight:800;letter-spacing:.06em}.finding b{font-size:.95rem}.finding p{color:var(--muted);font-size:.86rem;margin:5px 0 0}.result h2{font-size:1rem;margin:25px 0 12px}.result ul{padding-left:19px;color:var(--muted)}.result li{margin:5px 0;word-break:break-word}.loading{color:var(--muted);display:flex;align-items:center;gap:10px}.spinner{width:17px;height:17px;border:2px solid #ffffff33;border-top-color:var(--mint);border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.footer{margin-top:70px;color:#697795;font-size:.82rem;border-top:1px solid var(--line);padding-top:20px}@media(max-width:700px){.nav{margin-bottom:60px}.form{display:block}.form button{height:48px;width:100%;margin-top:5px}.grid,.columns{grid-template-columns:1fr}.hero h1{font-size:3.7rem}.result-head{display:block}.result-head .risk{margin-top:14px}}
-  </style>
-</head>
-<body><main class="wrap"><nav class="nav"><div class="brand"><span class="logo">⌁</span> tracecheck</div><a href="https://github.com/drascoer711/site-privacy-checker" target="_blank" rel="noreferrer">View source ↗</a></nav><section class="hero"><div class="eyebrow">PRIVACY, MADE VISIBLE</div><h1>See what websites expose.</h1><p class="lead">Scan a public page for trackers, cookies, fingerprinting signals, security headers, and third-party resources. Fast evidence—not a vague privacy score.</p><div class="scan-card"><form class="form" id="form"><input id="url" type="text" placeholder="Paste a website URL…" autocomplete="url" required><button>Scan website&nbsp; →</button></form><div class="privacy-note">✓ No JavaScript execution &nbsp;·&nbsp; ✓ Private targets blocked &nbsp;·&nbsp; ✓ No scan history</div></div></section><section class="grid"><article class="feature"><div class="feature-icon">◉</div><h3>Tracker signals</h3><p>Find common analytics, ads, session replay, and fingerprinting libraries.</p></article><article class="feature"><div class="feature-icon">⌘</div><h3>Evidence first</h3><p>See the exact findings, external domains, cookies, and headers behind the result.</p></article><article class="feature"><div class="feature-icon">◈</div><h3>Privacy by design</h3><p>Safe server-side fetching with timeouts, size limits, and SSRF protections.</p></article></section><section id="output" class="result hidden"></section><p class="footer">Tracecheck inspects HTML and response headers without executing page JavaScript. It cannot know what a server stores after receiving data.</p></main><script>
-const form=document.querySelector('#form'),out=document.querySelector('#output');
-form.addEventListener('submit',async e=>{e.preventDefault();out.classList.remove('hidden');out.innerHTML='<div class="loading"><span class="spinner"></span> Inspecting the page safely…</div>';out.scrollIntoView({behavior:'smooth',block:'center'});try{const r=await fetch('/api/scan',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:document.querySelector('#url').value})});const d=await r.json();if(!r.ok)throw Error(d.error);const cls=d.risk.level;out.innerHTML=`<div class="result-head"><div><div class="eyebrow">SCAN COMPLETE</div><p>${d.url}</p></div><div class="risk ${cls}"><span class="risk-dot"></span>${d.risk.level.toUpperCase()} RISK · ${d.risk.score}</div></div><div class="columns"><div><h2>Findings <span class="hint">(${d.findings.length})</span></h2>${d.findings.length?d.findings.map(f=>`<div class="finding"><span class="tag ${f.severity}">${f.severity}</span><b>${f.name}</b><p>${f.category}: ${f.detail}</p></div>`).join(''):'<p>No known signals found in the inspected source.</p>'}</div><div><h2>Third-party domains</h2><ul>${d.externalDomains.length?d.externalDomains.map(x=>`<li>${x}</li>`).join(''):'<li>None detected</li>'}</ul><h2>Privacy headers</h2><ul>${Object.entries(d.headers).map(([k,v])=>`<li><b>${k}</b>: ${v||'not present'}</li>`).join('')}</ul><p class="hint">HTTP ${d.status}${d.truncated?' · response truncated':''}</p></div></div>`}catch(err){out.innerHTML=`<div class="risk high"><span class="risk-dot"></span> Scan failed</div><p>${err.message}</p>`}});
-</script></body></html>
+const MAX_BYTES = 1_500_000;
+const TIMEOUT_MS = 8_000;
+const TRACKERS = [
+  { name: "Google Analytics", pattern: /google-analytics|googletagmanager|gtag\(/i, severity: "medium" },
+  { name: "Meta Pixel", pattern: /connect\.facebook\.net|fbq\(/i, severity: "medium" },
+  { name: "TikTok Pixel", pattern: /analytics\.tiktok\.com|ttq\./i, severity: "medium" },
+  { name: "Hotjar", pattern: /static\.hotjar\.com|hj\(/i, severity: "medium" },
+  { name: "Microsoft Clarity", pattern: /clarity\.ms|clarity\(/i, severity: "medium" },
+  { name: "Session replay", pattern: /fullstory|smartlook|mouseflow|logrocket/i, severity: "high" },
+  { name: "Fingerprinting library", pattern: /fingerprintjs|fingerprint\.com|clientjs/i, severity: "high" }
+];
+const FINGERPRINTING = [
+  { name: "Canvas fingerprinting", pattern: /toDataURL\s*\(|getImageData\s*\(/i },
+  { name: "WebGL renderer detection", pattern: /WEBGL_debug_renderer_info|UNMASKED_RENDERER_WEBGL/i },
+  { name: "Audio fingerprinting", pattern: /OfflineAudioContext|AudioContext/i },
+  { name: "Battery status access", pattern: /navigator\.getBattery/i },
+  { name: "Hardware/device hints", pattern: /hardwareConcurrency|deviceMemory|maxTouchPoints|screen\.colorDepth/i }
+];
+const TECHNOLOGIES = [
+  ["WordPress", /wp-content|wp-includes/i],
+  ["Shopify", /cdn\.shopify\.com|shopifycdn/i],
+  ["Webflow", /webflow\.com|data-wf-page/i],
+  ["React", /react(?:\.production)?\.min\.js|__next_data__/i],
+  ["Next.js", /_next\/static|__next_f/i],
+  ["Vue", /vue(?:\.runtime)?\.min\.js/i],
+  ["Bootstrap", /bootstrap(?:\.min)?\.(?:css|js)/i],
+  ["Google Tag Manager", /googletagmanager|gtm\.js/i],
+  ["Cloudflare", /cdnjs\.cloudflare\.com|cloudflare/i]
+];
+const SECURITY_HEADERS = [
+  "content-security-policy",
+  "referrer-policy",
+  "permissions-policy",
+  "strict-transport-security",
+  "x-content-type-options",
+  "x-frame-options"
+];
+function isPrivateHost(hostname) {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (host === "localhost" || host.endsWith(".localhost") || host === "0.0.0.0" || host === "::1") return true;
+  if (/^(10|127)\./.test(host) || /^192\.168\./.test(host) || /^169\.254\./.test(host)) return true;
+  const match = host.match(/^172\.(\d{1,3})\./);
+  if (match && Number(match[1]) >= 16 && Number(match[1]) <= 31) return true;
+  return host.includes(":");
+}
+function parseTarget(value) {
+  let url;
+  try { url = new URL(value.includes("://") ? value : `https://${value}`); } catch { throw new Error("Enter a valid website URL."); }
+  if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || isPrivateHost(url.hostname)) throw new Error("Only public HTTP(S) URLs without credentials can be scanned.");
+  url.hash = "";
+  return url;
+}
+function severityScore(findings) {
+  const score = findings.reduce((total, item) => total + (item.severity === "high" ? 3 : item.severity === "medium" ? 2 : 1), 0);
+  return { score, level: score >= 7 ? "high" : score >= 3 ? "medium" : "low" };
+}
+function cleanLabel(value) {
+  return String(value || "Anonymous visitor").replace(/[\\`*_~|<>]/g, "").trim().slice(0, 80) || "Anonymous visitor";
+}
+function summarizeSecurity(headers) {
+  const present = Object.entries(headers).filter(([, value]) => Boolean(value)).map(([name]) => name);
+  const missing = SECURITY_HEADERS.filter((name) => !present.includes(name));
+  const score = Math.round((present.length / SECURITY_HEADERS.length) * 100);
+  return { total: SECURITY_HEADERS.length, present: present.length, missing, score };
+}
+function parseCookieList(cookieHeaders) {
+  return cookieHeaders.map((cookie) => {
+    const raw = String(cookie).split(";").map((part) => part.trim()).filter(Boolean);
+    const [pair, ...attributes] = raw;
+    const [name, ...valueParts] = (pair || "").split("=");
+    const value = valueParts.join("=");
+    return {
+      name: name || "Unnamed cookie",
+      value: value ? value.slice(0, 40) : "",
+      attributes: attributes.slice(0, 8),
+      risky: /(session|track|analytics|_ga|_gid|fbp|tt|utm)/i.test(name || "") || /secure|httponly|samesite/i.test(attributes.join(" ")) === false
+    };
+  });
+}
+async function notifyDiscord({ target, requester, result, req }) {
+  const webhook = process.env.DISCORD_WEBHOOK_URL;
+  if (!webhook) return;
+  const userAgent = String(req.headers["user-agent"] || "Unknown browser").slice(0, 180);
+  const payload = {
+    username: "Tracecheck",
+    embeds: [{
+      title: "New privacy scan",
+      description: `A visitor requested a scan of ${target.href}`,
+      color: result.risk.level === "high" ? 0xff7890 : result.risk.level === "medium" ? 0xffd166 : 0x74f5ca,
+      fields: [
+        { name: "Website checked", value: `\`${target.hostname}\``, inline: true },
+        { name: "Requested by", value: cleanLabel(requester), inline: true },
+        { name: "Risk", value: `${result.risk.level.toUpperCase()} (${result.risk.score})`, inline: true },
+        { name: "Findings", value: String(result.findings.length), inline: true },
+        { name: "Third-party domains", value: String(result.externalDomains.length), inline: true },
+        { name: "Browser", value: userAgent, inline: false }
+      ],
+      timestamp: new Date().toISOString(),
+      footer: { text: "Tracecheck · IP addresses are not included" }
+    }]
+  };
+  try {
+    await fetch(webhook, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+  } catch {
+    // do nothing; reporting must never fail a scan
+  }
+}
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Use POST." });
+  try {
+    const target = parseTarget(req.body?.url || "");
+    const requester = req.body?.requester || "Anonymous visitor";
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    let response;
+    try {
+      response = await fetch(target, { signal: controller.signal, redirect: "manual", headers: { "User-Agent": "Tracecheck/1.0 (privacy audit)" } });
+    } finally { clearTimeout(timer); }
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("text/html")) return res.status(422).json({ error: "The URL did not return an HTML page." });
+    const reader = response.body?.getReader();
+    let bytes = 0; let html = "";
+    if (reader) {
+      const decoder = new TextDecoder();
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        bytes += value.byteLength;
+        if (bytes > MAX_BYTES) break;
+        html += decoder.decode(value, { stream: true });
+      }
+    } else html = await response.text();
+    const lower = html.toLowerCase();
+    const findings = [];
+    for (const tracker of TRACKERS) if (tracker.pattern.test(html)) findings.push({ category: "Tracker", name: tracker.name, severity: tracker.severity, detail: "A matching script or API pattern was found in the page." });
+    for (const signal of FINGERPRINTING) if (signal.pattern.test(html)) findings.push({ category: "Fingerprinting", name: signal.name, severity: "high", detail: "A browser/device identification API pattern was found in page source." });
+    const cookieHeaders = response.headers.getSetCookie?.() || (response.headers.get("set-cookie") ? [response.headers.get("set-cookie")] : []);
+    const cookies = parseCookieList(cookieHeaders);
+    for (const cookie of cookies) finding:
+    if (cookie.risky) findings.push({ category: "Cookie", name: cookie.name, severity: /analytics|track|_ga|_gid|fbp|tt/i.test(cookie.name) ? "medium" : "low", detail: `Cookie attributes: ${cookie.attributes.join(", ") || "no explicit attributes"}` });
+    const headers = {};
+    for (const name of SECURITY_HEADERS) headers[name] = response.headers.get(name) || null;
+    const externalDomains = [...new Set([...html.matchAll(/(?:src|href|action)=["']([^"']+)["']/gi)].map(m => { try { return new URL(m[1], target).hostname; } catch { return null; } }).filter(host => host && host !== target.hostname))].slice(0, 40);
+    const params = [...lower.matchAll(/(?:[?&])(utm_[^=&#]+|fbclid|gclid|msclkid)=/g)].map(m => m[1]);
+    if (params.length) findings.push({ category: "Tracking parameter", name: "Marketing identifiers", severity: "low", detail: [...new Set(params)].join(", ") });
+    const technologies = TECHNOLOGIES.filter(([, pattern]) => pattern.test(html)).map(([name]) => name);
+    const security = summarizeSecurity(headers);
+    const risk = severityScore(findings);
+    const result = {
+      url: target.href,
+      status: response.status,
+      truncated: bytes > MAX_BYTES,
+      risk,
+      findings,
+      externalDomains,
+      technologies,
+      cookies,
+      headers,
+      security,
+      fetchedAt: new Date().toISOString(),
+      note: "HTML and response headers were inspected; JavaScript was not executed."
+    };
+    await notifyDiscord({ target, requester, result, req });
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(400).json({ error: error.name === "AbortError" ? "The scan timed out." : error.message || "The scan failed." });
+  }
+}
+
