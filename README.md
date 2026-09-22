@@ -1,15 +1,6 @@
-# Site Privacy Checker
+# Tracecheck
 
-A small, privacy-first website scanner for identifying common tracking signals in a public page's HTML and response headers.
-
-## What it checks
-
-- Known analytics, advertising, session-replay, and fingerprinting scripts
-- Third-party script and resource domains
-- `Set-Cookie` response headers and cookie attributes
-- Privacy/security headers such as CSP and Referrer-Policy
-- Inline JavaScript patterns associated with canvas, WebGL, audio, battery, and device fingerprinting
-- Tracking query parameters such as `utm_*`, `fbclid`, and `gclid`
+A privacy-first website scanner that checks a public page for common tracking signals, fingerprinting, cookies, response headers, and third-party resources.
 
 ## Run locally
 
@@ -18,10 +9,16 @@ npm install
 npx vercel dev
 ```
 
-Then open `http://localhost:3000`.
+Open `http://localhost:3000` and paste a public HTTP(S) URL.
 
-## Important limitations
+## Deploy to Vercel
 
-This first version fetches a page's HTML without executing JavaScript. It cannot prove what a server stores about a visitor, inspect requests made only after interaction, or determine how a company uses received data. Results are evidence-based signals, not a legal or absolute privacy verdict.
+Import this repository at [vercel.com/new](https://vercel.com/new). No environment variables are required for the MVP.
 
-The API blocks localhost, private/reserved IP literals, non-HTTP protocols, credentials in URLs, and oversized responses. Do not remove these protections if adding a browser worker later; browser-based scanning should use isolated workers with DNS-rebinding and SSRF protections.
+## Custom domain
+
+After deployment, open the Vercel project and choose **Settings → Domains → Add**. Enter a domain you own, then add the DNS record Vercel displays. The exact record depends on your domain registrar.
+
+## Scope and safety
+
+The scanner fetches HTML and response headers without executing JavaScript. It blocks credentials, localhost, private/reserved IP literals, non-HTTP protocols, oversized responses, and slow requests. Results are evidence-based signals, not proof of how a site stores or uses data.
