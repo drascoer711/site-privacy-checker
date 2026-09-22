@@ -1,0 +1,88 @@
+const MAX_BYTES = 1_500_000;
+const TIMEOUT_MS = 8_000;
+
+const TRACKERS = [
+  { name: "Google Analytics", pattern: /google-analytics|googletagmanager|gtag\(/i, severity: "medium" },
+  { name: "Meta Pixel", pattern: /connect\.facebook\.net|fbq\(/i, severity: "medium" },
+  { name: "TikTok Pixel", pattern: /analytics\.tiktok\.com|ttq\./i, severity: "medium" },
+  { name: "Hotjar", pattern: /static\.hotjar\.com|hj\(/i, severity: "medium" },
+  { name: "Microsoft Clarity", pattern: /clarity\.ms|clarity\(/i, severity: "medium" },
+  { name: "Session replay", pattern: /fullstory|smartlook|mouseflow|logrocket/i, severity: "high" },
+  { name: "Fingerprinting library", pattern: /fingerprintjs|fingerprint\.com|clientjs/i, severity: "high" }
+];
+
+const FINGERPRINTING = [
+  { name: "Canvas fingerprinting", pattern: /toDataURL\s*\(|getImageData\s*\(/i },
+  { name: "WebGL renderer detection", pattern: /WEBGL_debug_renderer_info|UNMASKED_RENDERER_WEBGL/i },
+  { name: "Audio fingerprinting", pattern: /OfflineAudioContext|AudioContext/i },
+  { name: "Battery status access", pattern: /navigator\.getBattery/i },
+  { name: "Hardware/device hints", pattern: /hardwareConcurrency|deviceMemory|maxTouchPoints|screen\.colorDepth/i }
+];
+
+function isPrivateHost(hostname) {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (host === "localhost" || host.endsWith(".localhost") || host === "0.0.0.0" || host === "::1") return true;
+  if (/^(10|127)\./.test(host) || /^192\.168\./.test(host) || /^169\.254\./.test(host)) return true;
+  const match = host.match(/^172\.(\d{1,3})\./);
+  if (match && Number(match[1]) >= 16 && Number(match[1]) <= 31) return true;
+  if (host.includes(":")) return true; // IPv6 literals are rejected conservatively.
+  return false;
+}
+
+function parseTarget(value) {
+  let url;
+  try { url = new URL(value.includes("://") ? value : `https://${value}`); } catch { throw new Error("Enter a valid website URL."); }
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || isPrivateHost(url.hostname)) {
+    throw new Error("Only public HTTP(S) URLs without credentials can be scanned.");
+  }
+  url.hash = "";
+  return url;
+}
+
+function severityScore(findings) {
+  const score = findings.reduce((total, item) => total + (item.severity === "high" ? 3 : item.severity === "medium" ? 2 : 1), 0);
+  return { score, level: score >= 7 ? "high" : score >= 3 ? "medium" : "low" };
+}
+
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Use POST." });
+  try {
+    const target = parseTarget(req.body?.url || "");
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    let response;
+    try {
+      response = await fetch(target, { signal: controller.signal, redirect: "manual", headers: { "User-Agent": "SitePrivacyChecker/1.0 (privacy audit)" } });
+    } finally { clearTimeout(timer); }
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("text/html")) return res.status(422).json({ error: "The URL did not return an HTML page." });
+    const reader = response.body?.getReader();
+    let bytes = 0; let html = "";
+    if (reader) {
+      const decoder = new TextDecoder();
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        bytes += value.byteLength;
+        if (bytes > MAX_BYTES) break;
+        html += decoder.decode(value, { stream: true });
+      }
+    } else html = await response.text();
+    const lower = html.toLowerCase();
+    const findings = [];
+    for (const tracker of TRACKERS) if (tracker.pattern.test(html)) findings.push({ category: "Tracker", name: tracker.name, severity: tracker.severity, detail: "A matching script or API pattern was found in the page." });
+    for (const signal of FINGERPRINTING) if (signal.pattern.test(html)) findings.push({ category: "Fingerprinting", name: signal.name, severity: "high", detail: "A browser/device identification API pattern was found in page source." });
+    const cookies = response.headers.getSetCookie?.() || (response.headers.get("set-cookie") ? [response.headers.get("set-cookie")] : []);
+    for (const cookie of cookies) findings.push({ category: "Cookie", name: cookie.split(";")[0].split("=")[0] || "Unnamed cookie", severity: /analytics|track|pixel|_ga|fbp/i.test(cookie) ? "medium" : "low", detail: cookie.slice(0, 180) });
+    const headers = {};
+    for (const name of ["content-security-policy", "referrer-policy", "permissions-policy", "strict-transport-security"]) headers[name] = response.headers.get(name) || null;
+    const externalDomains = [...new Set([...html.matchAll(/(?:src|href|action)=["']([^"']+)["']/gi)].map(m => { try { return new URL(m[1], target).hostname; } catch { return null; } }).filter(host => host && host !== target.hostname))].slice(0, 40);
+    const params = [...lower.matchAll(/(?:[?&])(utm_[^=&#]+|fbclid|gclid|msclkid)=/g)].map(m => m[1]);
+    if (params.length) findings.push({ category: "Tracking parameter", name: "Marketing identifiers", severity: "low", detail: [...new Set(params)].join(", ") });
+    const risk = severityScore(findings);
+    return res.status(200).json({ url: target.href, status: response.status, truncated: bytes > MAX_BYTES, risk, findings, externalDomains, headers, fetchedAt: new Date().toISOString(), note: "HTML and response headers were inspected; JavaScript was not executed." });
+  } catch (error) {
+    const message = error.name === "AbortError" ? "The scan timed out." : error.message || "The scan failed.";
+    return res.status(400).json({ error: message });
+  }
+}
