@@ -4,7 +4,6 @@ Add these variables in Vercel → Project → Settings → Environment Variables
 
 - `ADMIN_EMAILS=cerocekro@gmail.com`
 - `DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...`
-- `AUTH_SECRET=<long random value>`
 - `SUPABASE_URL=...`
 - `SUPABASE_SERVICE_ROLE_KEY=...`
 
