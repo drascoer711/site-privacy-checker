@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tracecheck</title>
+  <style>
+    :root{color-scheme:dark;--bg:#080b16;--panel:#12182b;--line:#283653;--text:#f5f7ff;--muted:#9aa8c7;--mint:#74f5ca;--blue:#86aaff;--red:#ff7890;--yellow:#ffd166}
+    *{box-sizing:border-box}body{width:360px;margin:0;padding:18px;color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;background:radial-gradient(350px 220px at 0 -10%,#263d78 0,transparent 68%),var(--bg)}
+    .brand{font-weight:850;font-size:1rem}.logo{display:inline-grid;place-items:center;width:28px;height:28px;margin-right:7px;border-radius:9px;color:#07101b;background:linear-gradient(135deg,var(--mint),var(--blue))}.eyebrow{margin-top:18px;color:var(--mint);font-size:.68rem;font-weight:800;letter-spacing:.13em}.url{margin:7px 0 16px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.button{width:100%;border:0;border-radius:10px;padding:12px;background:linear-gradient(135deg,var(--mint),var(--blue));color:#07101b;font:inherit;font-weight:850;cursor:pointer}.button:disabled{opacity:.55;cursor:wait}.status{min-height:22px;margin:12px 0;color:var(--muted)}.status.error{color:var(--red)}.result{border:1px solid var(--line);border-radius:13px;padding:14px;background:rgba(255,255,255,.03)}.risk{display:inline-block;padding:5px 9px;border-radius:999px;text-transform:uppercase;font-size:.7rem;font-weight:850}.risk.high{color:var(--red);background:rgba(255,120,144,.14)}.risk.medium{color:var(--yellow);background:rgba(255,209,102,.14)}.risk.low{color:var(--mint);background:rgba(116,245,202,.13)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:13px}.metric{padding:9px;border:1px solid var(--line);border-radius:9px}.metric b{display:block;font-size:1.15rem}.metric span{color:var(--muted);font-size:.75rem}.findings{margin:14px 0 0;padding:0;list-style:none;color:var(--muted);display:grid;gap:6px}.finding{padding:7px 8px;border-left:2px solid var(--yellow);background:rgba(255,255,255,.025)}.finding.high{border-color:var(--red)}.links{display:flex;gap:12px;margin-top:14px}.links a{color:var(--mint);font-size:.8rem;text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="brand"><span class="logo">⌁</span>tracecheck</div>
+  <div class="eyebrow">CURRENT PAGE</div>
+  <div id="url" class="url">Reading active tab…</div>
+  <button id="scan" class="button">Scan this page</button>
+  <div id="status" class="status" aria-live="polite"></div>
+  <section id="result" class="result" hidden></section>
+  <div class="links"><a id="report" target="_blank" rel="noreferrer">Open scanner</a><a href="https://site-privacy-checker.vercel.app/compare.html" target="_blank" rel="noreferrer">Compare sites</a></div>
+  <script src="popup.js"></script>
+</body>
+</html>

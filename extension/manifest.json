@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Tracecheck Privacy Scanner",
+  "version": "1.0.0",
+  "description": "Scan the current website for privacy and security signals with Tracecheck.",
+  "permissions": ["activeTab", "storage"],
+  "host_permissions": ["https://site-privacy-checker.vercel.app/*"],
+  "action": {
+    "default_title": "Scan this page with Tracecheck",
+    "default_popup": "popup.html"
+  },
+  "icons": {},
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}
