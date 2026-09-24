@@ -1,159 +1,91 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tracecheck — Settings</title>
-  <style>
-    :root{color-scheme:dark;--bg:#080b16;--panel:rgba(18,24,43,.9);--line:rgba(164,180,225,.18);--text:#f5f7ff;--muted:#9aa8c7;--mint:#74f5ca;--blue:#86aaff;--red:#ff7890;--yellow:#ffd166}
-    *{box-sizing:border-box}body{margin:0;background:radial-gradient(760px 420px at 5% -10%,rgba(74,104,192,.38),transparent 58%),var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}.wrap{max-width:1100px;margin:0 auto;padding:32px 18px 80px}.topbar{display:flex;justify-content:space-between;align-items:center;gap:20px}.brand{display:flex;align-items:center;font-size:1.12rem;font-weight:850}.logo{width:34px;height:34px;border-radius:11px;display:inline-grid;place-items:center;margin-right:10px;background:linear-gradient(135deg,var(--mint),var(--blue));color:#07101b}.nav{display:flex;align-items:center;gap:16px;flex-wrap:wrap}a{color:var(--mint);text-decoration:none}.hero{margin-top:30px}.hero h1{margin:0;font-size:clamp(2.4rem,6vw,4.4rem);letter-spacing:-.08em;line-height:.96}.sub{color:var(--muted);max-width:780px;margin:10px 0 0}.grid{margin-top:26px;display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:rgba(18,24,43,.84);border:1px solid var(--line);border-radius:18px;padding:20px}.label{font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:800}.input{width:100%;margin-top:10px;padding:12px 13px;border-radius:10px;border:1px solid var(--line);background:rgba(9,13,21,.8);color:var(--text);font:inherit}.row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-top:1px solid var(--line)}.row:first-of-type{border-top:0}.switch{position:relative;width:46px;height:26px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--line);cursor:pointer}.switch::after{content:"";position:absolute;top:3px;left:4px;width:18px;height:18px;border-radius:50%;background:var(--text);transition:.2s}.switch.on{background:rgba(116,245,202,.18)}.switch.on::after{left:22px;background:var(--mint)}.button{display:inline-block;border:0;border-radius:11px;padding:12px 15px;background:linear-gradient(135deg,var(--mint),var(--blue));color:#07101b;font-weight:900;cursor:pointer}.muted{color:var(--muted)}.stack{display:grid;gap:12px}.small{font-size:.82rem}.danger{color:var(--red)}.favorites{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.favorite-chip{padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.025);color:var(--text);font-size:.78rem}.toast{position:fixed;right:18px;bottom:18px;max-width:320px;background:rgba(18,24,43,.96);border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--text);box-shadow:var(--shadow);display:none}.toast.show{display:block}@media(max-width:800px){.grid{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-direction:column}}</style>
-</head>
-<body>
-  <main class="wrap">
-    <header class="topbar">
-      <div class="brand"><span class="logo">⌁</span>tracecheck</div>
-      <nav class="nav"><a href="/dashboard.html">Dashboard</a><a href="/">Scanner</a><a href="/history.html">History</a></nav>
-    </header>
+export default async function handler(req, res) {
+  const method = req.method || 'GET';
 
-    <section class="hero">
-      <div class="label">Account settings</div>
-      <h1>Control your privacy experience.</h1>
-      <p class="sub">Manage your profile, saved scans, notifications, and browser extension sync in one place.</p>
-    </section>
-
-    <section class="grid">
-      <div class="card stack">
-        <div>
-          <div class="label">Profile</div>
-          <input class="input" id="full-name" type="text" placeholder="Full name" />
-        </div>
-        <div>
-          <div class="label">Email</div>
-          <input class="input" id="email" type="email" placeholder="you@example.com" />
-        </div>
-        <div>
-          <button class="button" id="save-profile">Save profile</button>
-        </div>
-      </div>
-
-      <div class="card stack">
-        <div class="label">Notifications</div>
-        <div class="row"><div><strong>Weekly digest</strong><div class="small muted">Receive a summary of your recent scans.</div></div><div class="switch on" data-key="weeklyDigest"></div></div>
-        <div class="row"><div><strong>High-risk alerts</strong><div class="small muted">Notify me when a scan crosses a threshold.</div></div><div class="switch on" data-key="highRiskAlerts"></div></div>
-        <div class="row"><div><strong>Browser sync</strong><div class="small muted">Save extension scans to your account.</div></div><div class="switch on" data-key="browserSync"></div></div>
-      </div>
-
-      <div class="card stack">
-        <div class="label">Saved scans</div>
-        <div class="small muted">Keep your favorite reports and recent site checks in one place.</div>
-        <div class="row"><div><strong>Auto-save scan history</strong></div><div class="switch on" data-key="autoSave"></div></div>
-        <div class="row"><div><strong>Favorite domains</strong></div><button class="button" id="favorite-demo">Manage</button></div>
-        <div id="favorites" class="favorites"></div>
-      </div>
-
-      <div class="card stack">
-        <div class="label">Security</div>
-        <div class="row"><div><strong>Sign out of all devices</strong><div class="small muted">Protect the account after a security event.</div></div><button class="button" id="signout-all">Run</button></div>
-        <div class="row"><div><strong>Delete account</strong><div class="small danger">Permanent and irreversible.</div></div><button class="button" style="background:linear-gradient(135deg,#ff8da1,#ff7890);color:#1c0b12" id="delete-account">Delete</button></div>
-      </div>
-    </section>
-  </main>
-
-  <div id="toast" class="toast"></div>
-
-  <script>
-    const STORAGE_KEYS = {
-      settings: 'tracecheck.settings',
-      favorites: 'tracecheck.favorites',
-      profile: 'tracecheck.profile'
-    };
-
-    function loadStorage(key, fallback) {
-      try {
-        const raw = localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : fallback;
-      } catch {
-        return fallback;
-      }
-    }
-
-    function saveStorage(key, value) {
-      localStorage.setItem(key, JSON.stringify(value));
-    }
-
-    function showToast(message) {
-      const el = document.querySelector('#toast');
-      el.textContent = message;
-      el.classList.add('show');
-      clearTimeout(showToast.timer);
-      showToast.timer = setTimeout(() => el.classList.remove('show'), 1800);
-    }
-
-    function defaultSettings() {
-      return {
+  if (method === 'GET') {
+    return res.status(200).json({
+      ok: true,
+      settings: {
         weeklyDigest: true,
         highRiskAlerts: true,
         browserSync: true,
         autoSave: true
-      };
-    }
-
-    function renderSettings() {
-      const settings = { ...defaultSettings(), ...loadStorage(STORAGE_KEYS.settings, {}) };
-      document.querySelectorAll('.switch').forEach((toggle) => {
-        const on = Boolean(settings[toggle.dataset.key]);
-        toggle.classList.toggle('on', on);
-      });
-
-      const profile = loadStorage(STORAGE_KEYS.profile, {});
-      document.querySelector('#full-name').value = profile.name || '';
-      document.querySelector('#email').value = profile.email || '';
-
-      const favorites = loadStorage(STORAGE_KEYS.favorites, []);
-      const chips = favorites.length ? favorites.map((url) => `<span class="favorite-chip">${String(url).slice(0, 30)}</span>`).join('') : '<span class="muted small">No favorites yet.</span>';
-      document.querySelector('#favorites').innerHTML = chips;
-    }
-
-    document.querySelectorAll('.switch').forEach((toggle) => {
-      toggle.addEventListener('click', () => {
-        const settings = { ...defaultSettings(), ...loadStorage(STORAGE_KEYS.settings, {}) };
-        settings[toggle.dataset.key] = !Boolean(settings[toggle.dataset.key]);
-        saveStorage(STORAGE_KEYS.settings, settings);
-        toggle.classList.toggle('on', settings[toggle.dataset.key]);
-      });
-    });
-
-    document.querySelector('#save-profile').addEventListener('click', () => {
-      const profile = {
-        name: document.querySelector('#full-name').value.trim(),
-        email: document.querySelector('#email').value.trim()
-      };
-      saveStorage(STORAGE_KEYS.profile, profile);
-      showToast('Profile saved locally.');
-    });
-
-    document.querySelector('#favorite-demo').addEventListener('click', () => {
-      const favorites = loadStorage(STORAGE_KEYS.favorites, []);
-      const list = favorites.length ? favorites.join(', ') : 'No favorite domains yet.';
-      alert('Favorite domains: ' + list);
-    });
-
-    document.querySelector('#signout-all').addEventListener('click', () => {
-      showToast('All sessions sign out request queued.');
-    });
-
-    document.querySelector('#delete-account').addEventListener('click', () => {
-      const confirmed = confirm('Delete your account permanently?');
-      if (confirmed) {
-        localStorage.removeItem(STORAGE_KEYS.profile);
-        localStorage.removeItem(STORAGE_KEYS.settings);
-        localStorage.removeItem(STORAGE_KEYS.favorites);
-        renderSettings();
-        showToast('Local account data cleared.');
       }
     });
+  }
 
-    renderSettings();
-  </script>
-</body>
-</html>
+  if (method !== 'POST') {
+    return res.status(405).json({ ok: false, error: 'Method not allowed.' });
+  }
+
+  const { action, payload = {} } = req.body || {};
+
+  switch (action) {
+    case 'save-settings': {
+      return res.status(200).json({
+        ok: true,
+        settings: {
+          ...payload,
+          updatedAt: new Date().toISOString()
+        }
+      });
+    }
+
+    case 'save-scan': {
+      const { url, risk, findings, fetchedAt } = payload;
+      if (!url) return res.status(400).json({ ok: false, error: 'URL is required.' });
+
+      return res.status(200).json({
+        ok: true,
+        saved: {
+          id: `scan_${Date.now()}`,
+          url,
+          risk: risk || { level: 'unknown', score: 0 },
+          findings: Array.isArray(findings) ? findings : [],
+          fetchedAt: fetchedAt || new Date().toISOString()
+        }
+      });
+    }
+
+    case 'favorite': {
+      const { url } = payload;
+      if (!url) return res.status(400).json({ ok: false, error: 'URL is required.' });
+
+      return res.status(200).json({
+        ok: true,
+        favorite: {
+          url,
+          createdAt: new Date().toISOString()
+        }
+      });
+    }
+
+    case 'weekly-digest': {
+      return res.status(200).json({
+        ok: true,
+        digest: {
+          totalScans: 12,
+          highRisk: 3,
+          summary: 'Most of your scans had tracker and cookie issues. Focus on reducing third-party scripts and tightening security headers.',
+          topIssues: [
+            'Third-party analytics scripts',
+            'Cookie risk',
+            'Missing security headers'
+          ]
+        }
+      });
+    }
+
+    case 'extension-sync': {
+      const { url } = payload;
+      return res.status(200).json({
+        ok: true,
+        synced: Boolean(url),
+        url: url || null,
+        message: 'Browser scan synced to the user dashboard.'
+      });
+    }
+
+    default:
+      return res.status(400).json({ ok: false, error: 'Unsupported action.' });
+  }
+}
