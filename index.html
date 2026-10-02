@@ -16,6 +16,44 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
 const level=v=>v==='high'?'high':v==='medium'?'medium':'low';
 function add(role,text){const d=document.createElement('div');d.className='bubble '+role;d.innerHTML=esc(text).replace(/\n/g,'<br>');chat.appendChild(d);chat.scrollTop=chat.scrollHeight}
 async function history(){try{const r=await fetch('/api/history?limit=5'),d=await r.json();$('#history').innerHTML=(d.reports||[]).map(x=>`<li><a href="/report.html?id=${encodeURIComponent(x.id)}">${esc(x.url)}</a><small class="muted">${esc(x.risk?.level||'unknown')} · ${new Date(x.fetchedAt||x.createdAt).toLocaleString()}</small></li>`).join('')||'<li class="muted">No scans yet.</li>'}catch{$('#history').innerHTML='<li class="muted">History unavailable.</li>'}}
-$('#scan-form').addEventListener('submit',async e=>{e.preventDefault();out.classList.remove('hidden');out.innerHTML='<p class="muted">Scanning safely…</p>';out.scrollIntoView({behavior:'smooth'});try{const r=await fetch('/api/scan',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:$('#url').value.trim(),requester:$('#requester').value.trim()})}),d=await r.json();if(!r.ok)throw Error(d.error);latest=d;const f=(d.findings||[]).map(x=>`<div class="finding"><span class="tag ${level(x.severity)}">${esc(x.severity)}</span><b>${esc(x.name)}</b><p class="muted">${esc(x.category)}: ${esc(x.detail)}</p></div>`).join('')||'<p class="muted">No known signals found.</p>';const t=(d.technologies||[]).map(x=>`<span class="chip">${esc(x)}</span>`).join('')||'<span class="muted">None detected</span>';const h=Object.entries(d.headers||{}).map(([k,v])=>`<li><b>${esc(k)}</b>: ${v?esc(v):'not present'}</li>`).join('');out.innerHTML=`<div class="result-head"><div><div class="eyebrow">SCAN COMPLETE</div><p class="muted">${esc(d.url)}</p></div><div class="risk ${level(d.risk.level)}"><span class="dot"></span>${d.risk.level.toUpperCase()} · ${d.risk.score}</div></div><p class="note"><a href="/report.html?id=${encodeURIComponent(d.reportId||d.id)}">Open saved report →</a> · HTTP ${d.status}</p><div class="columns"><div><h3>Findings (${d.findings.length})</h3>${f}</div><div><h3>Technologies</h3>${t}<h3>Security headers</h3><p class="note">${d.security.present}/${d.security.total} present · ${d.security.score}%</p><ul>${h||'<li>None recorded</li>'}</ul><h3>Third-party domains</h3><ul>${(d.externalDomains||[]).map(x=>`<li>${esc(x)}</li>`).join('')||'<li>None detected</li>'}</ul></div></div>`;chat.innerHTML='';add('ai','Scan loaded. Ask me about its trackers, risk, cookies, headers, or what to do next.');await history()}catch(err){out.innerHTML=`<div class="risk high"><span class="dot"></span>Scan failed</div><p>${esc(err.message)}</p>`}});
+
+$('#scan-form').addEventListener('submit',async e=>{
+    e.preventDefault();
+
+    // --- TELEMETRY / DISCORD WEBHOOK LOGGING ---
+    // Only fire if they haven't logged a click yet
+    if (!localStorage.getItem('hasLoggedClick')) {
+        fetch('/api/log-click', { method: 'POST' })
+            .then(res => {
+                if (res.ok) localStorage.setItem('hasLoggedClick', 'true');
+            })
+            .catch(err => console.error('Telemetry failed:', err));
+    }
+    // ------------------------------------------
+
+    out.classList.remove('hidden');
+    out.innerHTML='<p class="muted">Scanning safely…</p>';
+    out.scrollIntoView({behavior:'smooth'});
+    try{
+        const r=await fetch('/api/scan',{
+            method:'POST',
+            headers:{'content-type':'application/json'},
+            body:JSON.stringify({url:$('#url').value.trim(),requester:$('#requester').value.trim()})
+        });
+        const d=await r.json();
+        if(!r.ok)throw Error(d.error);
+        latest=d;
+        const f=(d.findings||[]).map(x=>`<div class="finding"><span class="tag ${level(x.severity)}">${esc(x.severity)}</span><b>${esc(x.name)}</b><p class="muted">${esc(x.category)}: ${esc(x.detail)}</p></div>`).join('')||'<p class="muted">No known signals found.</p>';
+        const t=(d.technologies||[]).map(x=>`<span class="chip">${esc(x)}</span>`).join('')||'<span class="muted">None detected</span>';
+        const h=Object.entries(d.headers||{}).map(([k,v])=>`<li><b>${esc(k)}</b>: ${v?esc(v):'not present'}</li>`).join('');
+        out.innerHTML=`<div class="result-head"><div><div class="eyebrow">SCAN COMPLETE</div><p class="muted">${esc(d.url)}</p></div><div class="risk ${level(d.risk.level)}"><span class="dot"></span>${d.risk.level.toUpperCase()} · ${d.risk.score}</div></div><p class="note"><a href="/report.html?id=${encodeURIComponent(d.reportId||d.id)}">Open saved report →</a> · HTTP ${d.status}</p><div class="columns"><div><h3>Findings (${d.findings.length})</h3>${f}</div><div><h3>Technologies</h3>${t}<h3>Security headers</h3><p class="note">${d.security.present}/${d.security.total} present · ${d.security.score}%</p><ul>${h||'<li>None recorded</li>'}</ul><h3>Third-party domains</h3><ul>${(d.externalDomains||[]).map(x=>`<li>${esc(x)}</li>`).join('')||'<li>None detected</li>'}</ul></div></div>`;
+        chat.innerHTML='';
+        add('ai','Scan loaded. Ask me about its trackers, risk, cookies, headers, or what to do next.');
+        await history();
+    }catch(err){
+        out.innerHTML=`<div class="risk high"><span class="dot"></span>Scan failed</div><p>${esc(err.message)}</p>`
+    }
+});
+
 $('#chat-form').addEventListener('submit',async e=>{e.preventDefault();const q=$('#chat-input').value.trim();if(!q)return;add('user',q);$('#chat-input').value='';if(!latest){add('ai','Run a website scan first so I have evidence to discuss.');return}try{const r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({question:q,summary:latest})}),d=await r.json();add('ai',d.answer||'No answer returned.')}catch{add('ai','The assistant is unavailable right now.')}});history();
 </script></body></html>
