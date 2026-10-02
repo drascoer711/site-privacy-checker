@@ -10,7 +10,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Missing Webhook URL' });
   }
 
-  // Safely extract IP and basic headers
   const ip = req.headers['x-real-ip'] || req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress || 'Unknown IP';
   const userAgent = req.headers['user-agent'] || 'Unknown Device';
   const referer = req.headers['referer'] || 'Direct/Unknown';
@@ -28,18 +27,32 @@ export default async function handler(req, res) {
     }]
   };
 
+  // FIX: Add a 4-second timeout to prevent Vercel "Execution Exceeded" crashes
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 4000); 
+
   try {
     const discordRes = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
 
-    if (!discordRes.ok) throw new Error(`Discord Error: ${discordRes.status}`);
+    clearTimeout(timeoutId);
+
+    if (!discordRes.ok) {
+      console.warn(`[Discord Warning]: API returned ${discordRes.status}. Rate limited?`);
+    }
     
+    // Always return 200 fast so the frontend doesn't hang
     return res.status(200).json({ success: true });
+    
   } catch (error) {
-    console.error("[Webhook Error]:", error.message);
-    return res.status(500).json({ error: 'Failed to deliver webhook.' });
+    clearTimeout(timeoutId);
+    console.error("[Webhook Error/Timeout]:", error.message);
+    
+    // Even if Discord times out, return 200 so Vercel closes the function cleanly
+    return res.status(200).json({ success: false, note: "Failed to reach Discord, but function exited cleanly." });
   }
 }
