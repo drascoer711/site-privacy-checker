@@ -16,6 +16,13 @@ const TRACKERS = [
   { name: "Fingerprinting library", pattern: /fingerprintjs|fingerprint\.com|clientjs|akamai|edgecast/i, severity: "high" }
 ];
 
+const IP_LOGGER_PATTERNS = [
+  { name: "IP Logger (iplogger)", pattern: /iplogger\.|iplogger\b|grabify|iplogger\.org|iplogger\.com|iplogger\.ru|iplogger\.co|iplogger\.net|iplogger\.info|iplogger\.me|iplogger\.app|iplogger\.live|iplogger\.tool|iplogger\.xyz|iplogger\.site/i, severity: "critical" },
+  { name: "IP lookup service", pattern: /ip-api|ipify|ipinfo|whatismyipaddress|checkip|icanhazip|myexternalip|ifconfig|geoip|ipwhois|ipinfo\.io|api\.ipify\.org|api\.ipify\.io|ipapi\.co|ipleak|ipaddress|ipwho\.is/i, severity: "high" },
+  { name: "URL shortener / redirect tracker", pattern: /bit\.ly|tinyurl|t\.co|ow\.ly|goo\.gl|rebrand\.ly|is\.gd|cutt\.ly|2no\.co|rb\.gy|lnkd\.in|tiny\.cc|shorturl/i, severity: "high" },
+  { name: "Proxy / IP leak checker", pattern: /proxycheck|proxyway|whatsmyip|whatismyip|ipstack|iplocation|ipgeolocation|ipinfo|ip2location|geojs|ip\.sh/i, severity: "medium" }
+];
+
 const FINGERPRINTING = [
   { name: "Canvas fingerprinting", pattern: /toDataURL\s*\(|getImageData\s*\(/i },
   { name: "WebGL renderer detection", pattern: /WEBGL_debug_renderer_info|UNMASKED_RENDERER_WEBGL/i },
@@ -92,7 +99,10 @@ const TRACKER_DOMAINS = [
   ["FullStory", /fullstory\.com/i],
   ["Smartlook", /smartlook\.com/i],
   ["Mouseflow", /mouseflow\.com/i],
-  ["LogRocket", /logrocket\.com/i]
+  ["LogRocket", /logrocket\.com/i],
+  ["IP Logger", /iplogger\.|iplogger\b|grabify|ip-logger|iplogger\.org|iplogger\.com|iplogger\.ru|iplogger\.co|iplogger\.net|iplogger\.info|iplogger\.me|iplogger\.app|iplogger\.tool|iplogger\.xyz|iplogger\.site|iplogger\.live|ip\-logger/i],
+  ["IP Lookup Service", /ip-api|ipify|ipinfo|whatismyipaddress|checkip|icanhazip|myexternalip|ifconfig|geoip|ipwhois|ipinfo\.io|api\.ipify\.org|api\.ipify\.io|ipapi\.co|ipleak|ipaddress|ipwho\.is/i],
+  ["URL shortener tracker", /bit\.ly|tinyurl|t\.co|ow\.ly|goo\.gl|rebrand\.ly|is\.gd|cutt\.ly|2no\.co|rb\.gy|lnkd\.in|tiny\.cc|shorturl/i]
 ];
 
 function isPrivateHost(hostname) {
@@ -395,6 +405,22 @@ export default async function handler(req, res) {
       }
     }
 
+    for (const logger of IP_LOGGER_PATTERNS) {
+      if (logger.pattern.test(html) || logger.pattern.test(lower)) {
+        findings.push({
+          category: "IP Logger",
+          name: logger.name,
+          severity: logger.severity,
+          detail: `This page appears to be using or referencing an IP logging or IP lookup service: ${logger.name}.`
+        });
+        dataTrackingFindings.push({
+          type: logger.name,
+          risk: logger.severity,
+          detail: `Potential IP collection or tracking service detected: ${logger.name}`
+        });
+      }
+    }
+
     for (const signal of FINGERPRINTING) {
       if (signal.pattern.test(html)) {
         findings.push({
@@ -520,7 +546,7 @@ export default async function handler(req, res) {
     const runtimeFindings = runtimeTrackingItems.map((match) => ({
       category: "Runtime Tracking",
       name: match.trackers[0] || "Tracking domain",
-      severity: "high",
+      severity: match.trackers.includes("IP Logger") || match.trackers.includes("IP Lookup Service") ? "critical" : "high",
       detail: `${match.domain} was contacted during page load and matched ${match.trackers.join(", ")}.`
     }));
 
@@ -530,7 +556,7 @@ export default async function handler(req, res) {
 
     const allTrackingItems = [...dataTrackingFindings, ...runtimeTrackingItems.map((track) => ({
       type: track.trackers.join(", "),
-      risk: "high",
+      risk: track.trackers.includes("IP Logger") || track.trackers.includes("IP Lookup Service") ? "critical" : "high",
       detail: `${track.domain} contacted at runtime`
     }))];
 
@@ -563,7 +589,7 @@ export default async function handler(req, res) {
       headers,
       security,
       fetchedAt: new Date().toISOString(),
-      note: "Static HTML + live browser inspection were used to detect tracking behavior and runtime network calls."
+      note: "Static HTML + live browser inspection were used to detect tracking behavior, IP-related data logging, runtime network calls, and privacy risks."
     };
 
     await notifyDiscord({ target, requester, result, req });
