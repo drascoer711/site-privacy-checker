@@ -7,8 +7,11 @@ const TRACKERS = [
   { name: "TikTok Pixel", pattern: /analytics\.tiktok\.com|ttq\./i, severity: "medium" },
   { name: "Hotjar", pattern: /static\.hotjar\.com|hj\(/i, severity: "medium" },
   { name: "Microsoft Clarity", pattern: /clarity\.ms|clarity\(/i, severity: "medium" },
-  { name: "Session replay", pattern: /fullstory|smartlook|mouseflow|logrocket/i, severity: "high" },
-  { name: "Fingerprinting library", pattern: /fingerprintjs|fingerprint\.com|clientjs/i, severity: "high" }
+  { name: "Amplitude", pattern: /amplitude\.com|amplitude\.js/i, severity: "medium" },
+  { name: "Mixpanel", pattern: /mixpanel\.com|mixpanel\.js/i, severity: "medium" },
+  { name: "Segment", pattern: /segment\.com|analytics\.js/i, severity: "medium" },
+  { name: "Session replay", pattern: /fullstory|smartlook|mouseflow|logrocket|getsentry|sentry\.io/i, severity: "high" },
+  { name: "Fingerprinting library", pattern: /fingerprintjs|fingerprint\.com|clientjs|akamai|edgecast/i, severity: "high" }
 ];
 
 const FINGERPRINTING = [
@@ -17,6 +20,41 @@ const FINGERPRINTING = [
   { name: "Audio fingerprinting", pattern: /OfflineAudioContext|AudioContext/i },
   { name: "Battery status access", pattern: /navigator\.getBattery/i },
   { name: "Hardware/device hints", pattern: /hardwareConcurrency|deviceMemory|maxTouchPoints|screen\.colorDepth/i }
+];
+
+const DATA_COLLECTION = [
+  { name: "localStorage access", pattern: /localStorage\.(set|get|remove)/i, risk: "medium" },
+  { name: "sessionStorage access", pattern: /sessionStorage\.(set|get|remove)/i, risk: "medium" },
+  { name: "IndexedDB access", pattern: /indexedDB|openDatabase/i, risk: "medium" },
+  { name: "Form data capture", pattern: /addEventListener.*submit|onsubmit/i, risk: "high" },
+  { name: "Keystroke logging", pattern: /addEventListener.*key(up|down)|onkey(up|down)/i, risk: "high" },
+  { name: "Mouse tracking", pattern: /addEventListener.*mouse(move|enter|leave)|onmouse(move|enter|leave)/i, risk: "high" },
+  { name: "Scroll tracking", pattern: /addEventListener.*scroll|onscroll/i, risk: "medium" },
+  { name: "Focus tracking", pattern: /addEventListener.*focus|blur|onfocus|onblur/i, risk: "medium" },
+  { name: "Copy/Paste monitoring", pattern: /addEventListener.*copy|paste|oncopy|onpaste|clipboardData/i, risk: "high" },
+  { name: "Geolocation API", pattern: /navigator\.geolocation|getCurrentPosition|watchPosition/i, risk: "high" },
+  { name: "Microphone access", pattern: /getUserMedia|mediaDevices|audio.*true/i, risk: "critical" },
+  { name: "Camera access", pattern: /getUserMedia|mediaDevices|video.*true/i, risk: "critical" },
+  { name: "Notification permission", pattern: /Notification\.requestPermission|notification\.permission/i, risk: "medium" }
+];
+
+const DATA_EXFILTRATION = [
+  { name: "Beacon API (data exfil)", pattern: /navigator\.sendBeacon|fetch\(.*navigator\./i, risk: "high" },
+  { name: "Image beacon (pixel tracking)", pattern: /new Image\(\)|image.*1x1|transparent\.gif/i, risk: "high" },
+  { name: "Data sent to tracking domain", pattern: /fetch\(.*(?:analytics|tracking|metrics|telemetry|segment)/i, risk: "high" },
+  { name: "Form submission to external", pattern: /form.*action=.*(?!^\/|same\-origin)/i, risk: "medium" },
+  { name: "XMLHttpRequest to tracker", pattern: /XMLHttpRequest|xhr.*(?:analytics|tracking|metrics)/i, risk: "high" },
+  { name: "WebSocket connection", pattern: /new WebSocket|ws:\/\/|wss:\/\//i, risk: "medium" }
+];
+
+const THIRD_PARTY_DATA_BROKERS = [
+  { name: "Acxiom (data broker)", pattern: /acxiom|liveramp|people-based/i, risk: "critical" },
+  { name: "Equifax (credit data)", pattern: /equifax|consumerinfo/i, risk: "critical" },
+  { name: "Experian (credit data)", pattern: /experian|creditinfo/i, risk: "critical" },
+  { name: "Oracle BlueKai (audience)", pattern: /oracle.*bluekai|bluekai/i, risk: "high" },
+  { name: "Krux (audience platform)", pattern: /krux|krux\.com/i, risk: "high" },
+  { name: "Neustar (precision ID)", pattern: /neustar|precisionid/i, risk: "high" },
+  { name: "Experian Marketing Services", pattern: /experian.*marketing|marketing\.experian/i, risk: "high" }
 ];
 
 const TECHNOLOGIES = [
@@ -73,6 +111,7 @@ function parseTarget(value) {
 
 function severityScore(findings) {
   const score = findings.reduce((total, item) => {
+    if (item.severity === "critical") return total + 5;
     if (item.severity === "high") return total + 3;
     if (item.severity === "medium") return total + 2;
     return total + 1;
@@ -80,7 +119,7 @@ function severityScore(findings) {
 
   return {
     score,
-    level: score >= 7 ? "high" : score >= 3 ? "medium" : "low"
+    level: score >= 10 ? "high" : score >= 5 ? "medium" : "low"
   };
 }
 
@@ -118,7 +157,7 @@ function parseCookieList(cookieHeaders) {
       value: value ? value.slice(0, 40) : "",
       attributes: attributes.slice(0, 8),
       risky:
-        /(session|track|analytics|_ga|_gid|fbp|tt|utm)/i.test(name || "") ||
+        /(session|track|analytics|_ga|_gid|fbp|tt|utm|uid|sid)/i.test(name || "") ||
         /secure|httponly|samesite/i.test(attributes.join(" ")) === false
     };
   });
@@ -141,8 +180,8 @@ async function notifyDiscord({ target, requester, result, req }) {
         { name: "Requested by", value: cleanLabel(requester), inline: true },
         { name: "Risk", value: `${result.risk.level.toUpperCase()} (${result.risk.score})`, inline: true },
         { name: "Findings", value: String(result.findings.length), inline: true },
-        { name: "Third-party domains", value: String(result.externalDomains.length), inline: true },
-        { name: "Browser", value: userAgent, inline: false }
+        { name: "Data tracking indicators", value: String(result.dataTracking?.total || 0), inline: true },
+        { name: "Third-party domains", value: String(result.externalDomains.length), inline: true }
       ],
       timestamp: new Date().toISOString(),
       footer: { text: "Tracecheck · IP addresses are not included" }
@@ -210,7 +249,9 @@ export default async function handler(req, res) {
 
     const lower = html.toLowerCase();
     const findings = [];
+    const dataTrackingFindings = [];
 
+    // Standard tracker detection
     for (const tracker of TRACKERS) {
       if (tracker.pattern.test(html)) {
         findings.push({
@@ -222,6 +263,7 @@ export default async function handler(req, res) {
       }
     }
 
+    // Fingerprinting detection
     for (const signal of FINGERPRINTING) {
       if (signal.pattern.test(html)) {
         findings.push({
@@ -229,6 +271,57 @@ export default async function handler(req, res) {
           name: signal.name,
           severity: "high",
           detail: "A browser/device identification API pattern was found in page source."
+        });
+      }
+    }
+
+    // Data collection detection
+    for (const collection of DATA_COLLECTION) {
+      if (collection.pattern.test(html)) {
+        dataTrackingFindings.push({
+          type: collection.name,
+          risk: collection.risk,
+          detail: `The page attempts to collect data using: ${collection.name}`
+        });
+        findings.push({
+          category: "Data Collection",
+          name: collection.name,
+          severity: collection.risk === "critical" ? "high" : collection.risk === "high" ? "high" : "medium",
+          detail: `Pattern detected in page source: ${collection.name}`
+        });
+      }
+    }
+
+    // Data exfiltration detection
+    for (const exfil of DATA_EXFILTRATION) {
+      if (exfil.pattern.test(html)) {
+        dataTrackingFindings.push({
+          type: exfil.name,
+          risk: exfil.risk,
+          detail: `The page may be sending data via: ${exfil.name}`
+        });
+        findings.push({
+          category: "Data Exfiltration",
+          name: exfil.name,
+          severity: exfil.risk === "critical" ? "high" : exfil.risk === "high" ? "high" : "medium",
+          detail: `Pattern detected: data may be sent to remote servers`
+        });
+      }
+    }
+
+    // Third-party data broker detection
+    for (const broker of THIRD_PARTY_DATA_BROKERS) {
+      if (broker.pattern.test(html)) {
+        dataTrackingFindings.push({
+          type: broker.name,
+          risk: broker.risk,
+          detail: `Link to data broker detected: ${broker.name}`
+        });
+        findings.push({
+          category: "Data Broker",
+          name: broker.name,
+          severity: "high",
+          detail: `Integration with third-party data broker: ${broker.name}`
         });
       }
     }
@@ -243,7 +336,7 @@ export default async function handler(req, res) {
         findings.push({
           category: "Cookie",
           name: cookie.name,
-          severity: /analytics|track|_ga|_gid|fbp|tt/i.test(cookie.name) ? "medium" : "low",
+          severity: /analytics|track|_ga|_gid|fbp|tt|uid|sid/i.test(cookie.name) ? "medium" : "low",
           detail: `Cookie attributes: ${cookie.attributes.join(", ") || "no explicit attributes"}`
         });
       }
@@ -266,12 +359,12 @@ export default async function handler(req, res) {
         .filter((host) => host && host !== target.hostname)
     )].slice(0, 40);
 
-    const params = [...lower.matchAll(/(?:[?&])(utm_[^=&#]+|fbclid|gclid|msclkid)=/g)].map((m) => m[1]);
+    const params = [...lower.matchAll(/(?:[?&])(utm_[^=&#]+|fbclid|gclid|msclkid|fbp|_ga|uid|sid)=/g)].map((m) => m[1]);
 
     if (params.length) {
       findings.push({
         category: "Tracking parameter",
-        name: "Marketing identifiers",
+        name: "Marketing/User ID parameters",
         severity: "low",
         detail: [...new Set(params)].join(", ")
       });
@@ -290,6 +383,13 @@ export default async function handler(req, res) {
       truncated: bytes > MAX_BYTES,
       risk,
       findings,
+      dataTracking: {
+        total: dataTrackingFindings.length,
+        critical: dataTrackingFindings.filter((item) => item.risk === "critical").length,
+        high: dataTrackingFindings.filter((item) => item.risk === "high").length,
+        medium: dataTrackingFindings.filter((item) => item.risk === "medium").length,
+        items: dataTrackingFindings.slice(0, 20)
+      },
       externalDomains,
       technologies,
       cookies,
