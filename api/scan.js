@@ -1,3 +1,5 @@
+import { chromium } from "playwright";
+
 const MAX_BYTES = 1_500_000;
 const TIMEOUT_MS = 8_000;
 
@@ -53,8 +55,7 @@ const THIRD_PARTY_DATA_BROKERS = [
   { name: "Experian (credit data)", pattern: /experian|creditinfo/i, risk: "critical" },
   { name: "Oracle BlueKai (audience)", pattern: /oracle.*bluekai|bluekai/i, risk: "high" },
   { name: "Krux (audience platform)", pattern: /krux|krux\.com/i, risk: "high" },
-  { name: "Neustar (precision ID)", pattern: /neustar|precisionid/i, risk: "high" },
-  { name: "Experian Marketing Services", pattern: /experian.*marketing|marketing\.experian/i, risk: "high" }
+  { name: "Neustar (precision ID)", pattern: /neustar|precisionid/i, risk: "high" }
 ];
 
 const TECHNOLOGIES = [
@@ -78,6 +79,22 @@ const SECURITY_HEADERS = [
   "x-frame-options"
 ];
 
+const TRACKER_DOMAINS = [
+  ["Google Analytics", /google-analytics\.com|googletagmanager\.com|gtm\.google\.com/i],
+  ["Meta Pixel", /facebook\.net|facebook\.com\/tr/i],
+  ["TikTok", /tiktok\.com|tiktokcdn/i],
+  ["Hotjar", /hotjar\.com|hotjar\.io/i],
+  ["Clarity", /clarity\.ms/i],
+  ["Amplitude", /amplitude\.com/i],
+  ["Mixpanel", /mixpanel\.com/i],
+  ["Segment", /segment\.com/i],
+  ["Sentry", /sentry\.io/i],
+  ["FullStory", /fullstory\.com/i],
+  ["Smartlook", /smartlook\.com/i],
+  ["Mouseflow", /mouseflow\.com/i],
+  ["LogRocket", /logrocket\.com/i]
+];
+
 function isPrivateHost(hostname) {
   const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
   if (host === "localhost" || host.endsWith(".localhost") || host === "0.0.0.0" || host === "::1") return true;
@@ -96,12 +113,7 @@ function parseTarget(value) {
     throw new Error("Enter a valid website URL.");
   }
 
-  if (
-    !["http:", "https:"].includes(url.protocol) ||
-    url.username ||
-    url.password ||
-    isPrivateHost(url.hostname)
-  ) {
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || isPrivateHost(url.hostname)) {
     throw new Error("Only public HTTP(S) URLs without credentials can be scanned.");
   }
 
@@ -163,6 +175,126 @@ function parseCookieList(cookieHeaders) {
   });
 }
 
+function domainFromUrl(candidate) {
+  try {
+    return new URL(candidate).hostname;
+  } catch {
+    return null;
+  }
+}
+
+function categorizeRequestHost(hostname) {
+  const matches = [];
+  for (const [name, pattern] of TRACKER_DOMAINS) {
+    if (pattern.test(hostname)) matches.push(name);
+  }
+  return matches;
+}
+
+async function collectRuntimeData(targetUrl) {
+  const browser = await chromium.launch({
+    headless: true,
+    args: ["--disable-dev-shm-usage", "--no-sandbox", "--disable-blink-features=AutomationControlled"]
+  });
+
+  try {
+    const page = await browser.newPage({
+      viewport: { width: 1440, height: 1200 },
+      userAgent: "Tracecheck/1.0 (privacy audit)"
+    });
+
+    const requests = [];
+    const consoleMessages = [];
+    const pageErrors = [];
+
+    page.on("request", (request) => {
+      try {
+        const url = request.url();
+        const domain = domainFromUrl(url);
+        requests.push({
+          url,
+          method: request.method(),
+          resourceType: request.resourceType(),
+          domain: domain || "unknown",
+          matchedTrackers: categorizeRequestHost(domain || "")
+        });
+      } catch {
+        // ignore invalid requests
+      }
+    });
+
+    page.on("console", (msg) => {
+      consoleMessages.push(msg.text());
+    });
+
+    page.on("pageerror", (err) => {
+      pageErrors.push(err.message);
+    });
+
+    await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 20000 });
+    await page.waitForTimeout(2500);
+
+    const storage = await page.evaluate(() => {
+      try {
+        const local = Object.fromEntries(Object.entries(window.localStorage || {}));
+        const session = Object.fromEntries(Object.entries(window.sessionStorage || {}));
+        return {
+          local,
+          session,
+          cookies: document.cookie || "",
+          referrer: document.referrer || "",
+          title: document.title || ""
+        };
+      } catch {
+        return { local: {}, session: {}, cookies: "", referrer: "", title: "" };
+      }
+    });
+
+    const runtime = {
+      url: await page.url(),
+      pageTitle: storage.title,
+      cookies: storage.cookies,
+      referrer: storage.referrer,
+      localStorage: Object.keys(storage.local || {}),
+      sessionStorage: Object.keys(storage.session || {}),
+      requests: requests.slice(0, 100),
+      consoleMessages: consoleMessages.slice(0, 25),
+      pageErrors: pageErrors.slice(0, 10)
+    };
+
+    const trackingMatches = [];
+    for (const request of runtime.requests) {
+      const host = request.domain;
+      const matches = categorizeRequestHost(host);
+      if (matches.length) {
+        trackingMatches.push({
+          domain: host,
+          trackers: matches,
+          url: request.url,
+          resourceType: request.resourceType
+        });
+      }
+    }
+
+    const uniqueTrackingMatches = [];
+    const seen = new Set();
+    for (const item of trackingMatches) {
+      const key = `${item.domain}|${item.trackers.join(',')}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueTrackingMatches.push(item);
+      }
+    }
+
+    return {
+      runtime,
+      uniqueTrackingMatches
+    };
+  } finally {
+    await browser.close();
+  }
+}
+
 async function notifyDiscord({ target, requester, result, req }) {
   const webhook = process.env.DISCORD_WEBHOOK_URL;
   if (!webhook) return;
@@ -181,7 +313,8 @@ async function notifyDiscord({ target, requester, result, req }) {
         { name: "Risk", value: `${result.risk.level.toUpperCase()} (${result.risk.score})`, inline: true },
         { name: "Findings", value: String(result.findings.length), inline: true },
         { name: "Data tracking indicators", value: String(result.dataTracking?.total || 0), inline: true },
-        { name: "Third-party domains", value: String(result.externalDomains.length), inline: true }
+        { name: "Third-party domains", value: String(result.externalDomains.length), inline: true },
+        { name: "Browser", value: userAgent, inline: false }
       ],
       timestamp: new Date().toISOString(),
       footer: { text: "Tracecheck · IP addresses are not included" }
@@ -251,7 +384,6 @@ export default async function handler(req, res) {
     const findings = [];
     const dataTrackingFindings = [];
 
-    // Standard tracker detection
     for (const tracker of TRACKERS) {
       if (tracker.pattern.test(html)) {
         findings.push({
@@ -263,7 +395,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // Fingerprinting detection
     for (const signal of FINGERPRINTING) {
       if (signal.pattern.test(html)) {
         findings.push({
@@ -275,7 +406,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // Data collection detection
     for (const collection of DATA_COLLECTION) {
       if (collection.pattern.test(html)) {
         dataTrackingFindings.push({
@@ -292,7 +422,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // Data exfiltration detection
     for (const exfil of DATA_EXFILTRATION) {
       if (exfil.pattern.test(html)) {
         dataTrackingFindings.push({
@@ -304,12 +433,11 @@ export default async function handler(req, res) {
           category: "Data Exfiltration",
           name: exfil.name,
           severity: exfil.risk === "critical" ? "high" : exfil.risk === "high" ? "high" : "medium",
-          detail: `Pattern detected: data may be sent to remote servers`
+          detail: "Pattern detected: data may be sent to remote servers"
         });
       }
     }
 
-    // Third-party data broker detection
     for (const broker of THIRD_PARTY_DATA_BROKERS) {
       if (broker.pattern.test(html)) {
         dataTrackingFindings.push({
@@ -377,6 +505,35 @@ export default async function handler(req, res) {
     const security = summarizeSecurity(headers);
     const risk = severityScore(findings);
 
+    const runtimeScan = await collectRuntimeData(target.href).catch(() => ({
+      runtime: { requests: [], localStorage: [], sessionStorage: [], pageErrors: [], consoleMessages: [] },
+      uniqueTrackingMatches: []
+    }));
+
+    const runtimeTrackingItems = runtimeScan.uniqueTrackingMatches.map((match) => ({
+      domain: match.domain,
+      trackers: match.trackers,
+      resourceType: match.resourceType,
+      url: match.url
+    }));
+
+    const runtimeFindings = runtimeTrackingItems.map((match) => ({
+      category: "Runtime Tracking",
+      name: match.trackers[0] || "Tracking domain",
+      severity: "high",
+      detail: `${match.domain} was contacted during page load and matched ${match.trackers.join(", ")}.`
+    }));
+
+    for (const item of runtimeFindings) {
+      findings.push(item);
+    }
+
+    const allTrackingItems = [...dataTrackingFindings, ...runtimeTrackingItems.map((track) => ({
+      type: track.trackers.join(", "),
+      risk: "high",
+      detail: `${track.domain} contacted at runtime`
+    }))];
+
     const result = {
       url: target.href,
       status: response.status,
@@ -384,11 +541,21 @@ export default async function handler(req, res) {
       risk,
       findings,
       dataTracking: {
-        total: dataTrackingFindings.length,
-        critical: dataTrackingFindings.filter((item) => item.risk === "critical").length,
-        high: dataTrackingFindings.filter((item) => item.risk === "high").length,
-        medium: dataTrackingFindings.filter((item) => item.risk === "medium").length,
-        items: dataTrackingFindings.slice(0, 20)
+        total: allTrackingItems.length,
+        critical: allTrackingItems.filter((item) => item.risk === "critical").length,
+        high: allTrackingItems.filter((item) => item.risk === "high").length,
+        medium: allTrackingItems.filter((item) => item.risk === "medium").length,
+        items: allTrackingItems.slice(0, 20)
+      },
+      runtimeTracking: {
+        url: runtimeScan.runtime.url,
+        title: runtimeScan.runtime.pageTitle,
+        requests: runtimeScan.runtime.requests.slice(0, 50),
+        localStorage: runtimeScan.runtime.localStorage,
+        sessionStorage: runtimeScan.runtime.sessionStorage,
+        pageErrors: runtimeScan.runtime.pageErrors,
+        consoleMessages: runtimeScan.runtime.consoleMessages,
+        matchedTrackers: runtimeTrackingItems
       },
       externalDomains,
       technologies,
@@ -396,7 +563,7 @@ export default async function handler(req, res) {
       headers,
       security,
       fetchedAt: new Date().toISOString(),
-      note: "HTML and response headers were inspected; JavaScript was not executed."
+      note: "Static HTML + live browser inspection were used to detect tracking behavior and runtime network calls."
     };
 
     await notifyDiscord({ target, requester, result, req });
