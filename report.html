@@ -3,41 +3,45 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tracecheck — Dashboard</title>
+  <title>Tracecheck — Report</title>
   <style>
-    :root { color-scheme: dark; --bg:#080b16; --surface:rgba(18,24,43,.78); --surface-2:#151d35; --line:rgba(164,180,225,.18); --text:#f5f7ff; --muted:#9aa8c7; --mint:#74f5ca; --blue:#7ca7ff; --yellow:#ffd166; --red:#ff7890; --shadow:0 24px 80px rgba(0,0,0,.35); }
+    :root { color-scheme: dark; --bg:#080b16; --surface:rgba(18,24,43,.78); --surface-2:#151d35; --line:rgba(164,180,225,.18); --text:#f5f7ff; --muted:#9aa8c7; --mint:#74f5ca; --blue:#7ca7ff; --yellow:#ffd166; --orange:#ffb86b; --red:#ff7890; --shadow:0 24px 80px rgba(0,0,0,.35); }
     * { box-sizing:border-box; }
-    body { margin:0; min-height:100vh; background:radial-gradient(900px 500px at 8% -10%, #243d72 0%, transparent 62%), radial-gradient(700px 500px at 100% 10%, #173d46 0%, transparent 60%), var(--bg); color:var(--text); font:15px/1.6 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    body { margin:0; min-height:100vh; background:radial-gradient(900px 500px at 8% -10%, #243d72 0%, transparent 62%), radial-gradient(700px 500px at 100% 10%, #173d46 0%, transparent 60%), var(--bg); color:var(--text); font:15px/1.6 Inter,system-ui,-apple-system,Segoe UI,sans-serif; }
     a { color:var(--mint); text-decoration:none; }
-    .wrap { max-width:1200px; margin:0 auto; padding:32px 20px 80px; }
-    .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:28px; }
+    .wrap { max-width:1180px; margin:0 auto; padding:32px 18px 80px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:22px; }
     .brand { display:flex; align-items:center; gap:12px; font-weight:800; }
     .logo { width:34px; height:34px; display:grid; place-items:center; border-radius:11px; background:linear-gradient(135deg,var(--mint),var(--blue)); color:#07101b; }
-    .nav { display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+    .nav { display:flex; gap:14px; flex-wrap:wrap; }
+    .hero { display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:18px; }
+    .site-title { font-size:clamp(2rem, 4vw, 3rem); font-weight:900; letter-spacing:-.06em; margin:0; }
+    .status-badge { border:1px solid var(--line); border-radius:999px; padding:8px 12px; font-size:.8rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+    .status-high { color:#ffc3cf; border-color: rgba(255,120,144,.35); background:rgba(255,120,144,.08); }
+    .status-medium { color:#f9d77a; border-color: rgba(255,209,102,.35); background:rgba(255,209,102,.08); }
+    .status-low { color:#a9f4d9; border-color: rgba(116,245,202,.35); background:rgba(116,245,202,.08); }
     .grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
-    .card { border:1px solid var(--line); background:rgba(18,24,43,.78); border-radius:18px; padding:18px; }
-    .value { font-size:2rem; font-weight:850; letter-spacing:-.06em; margin:10px 0 0; }
-    .label { color:var(--muted); font-size:.85rem; text-transform:uppercase; letter-spacing:.09em; }
-    .layout { display:grid; grid-template-columns:1.2fr .8fr; gap:20px; margin-top:22px; }
-    .panel { border:1px solid var(--line); background:rgba(18,24,43,.78); border-radius:18px; padding:18px; }
-    .report-list, .favorite-list, .recommendation-list { list-style:none; padding:0; margin:0; }
-    .report-list li, .favorite-list li, .recommendation-list li { border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.02); padding:12px 14px; margin-bottom:10px; }
-    .report-list a, .favorite-list a { color:var(--text); font-weight:700; }
-    .report-list small, .favorite-list small { display:block; color:var(--muted); }
+    .card { background:rgba(18,24,43,.78); border:1px solid var(--line); border-radius:18px; padding:18px; }
+    .label { font-size:.76rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+    .value { font-size:2rem; font-weight:850; letter-spacing:-.06em; margin-top:8px; }
+    .layout { display:grid; grid-template-columns:1.1fr .9fr; gap:18px; margin-top:18px; }
+    .panel { background:rgba(18,24,43,.78); border:1px solid var(--line); border-radius:18px; padding:18px; }
+    .panel h3 { margin:0 0 12px; font-size:1.1rem; }
+    .list { list-style:none; padding:0; margin:0; }
+    .list li { border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.02); padding:12px 14px; margin-bottom:10px; }
+    .list small { display:block; color:var(--muted); }
     .muted { color:var(--muted); }
-    .summary { margin-top:18px; padding:14px 0 0; border-top:1px solid var(--line); color:var(--muted); }
-    .recommendation-list li { position:relative; padding-left:38px; }
-    .recommendation-list li::before { content:attr(data-rank); position:absolute; left:12px; top:12px; width:20px; height:20px; border-radius:50%; display:grid; place-items:center; font-size:.72rem; font-weight:800; background:rgba(116,245,202,.14); color:var(--mint); }
-    .recommendation-list strong { display:block; margin-bottom:4px; }
-    .chat-box { display:flex; flex-direction:column; gap:10px; min-height:180px; max-height:320px; overflow:auto; padding-right:4px; }
-    .bubble { max-width:88%; padding:10px 12px; border-radius:14px; border:1px solid var(--line); background:rgba(255,255,255,.02); }
-    .bubble.user { align-self:flex-end; background:rgba(116,245,202,.10); }
-    .bubble.ai { align-self:flex-start; }
-    .chat-form { display:grid; grid-template-columns:1fr auto; gap:8px; margin-top:12px; }
-    .chat-form input { width:100%; background:rgba(11,15,26,.8); border:1px solid var(--line); border-radius:10px; padding:12px 14px; color:var(--text); }
-    .chat-form button { border:0; border-radius:10px; padding:0 16px; background:var(--blue); color:#09101b; font-weight:800; cursor:pointer; }
+    .finding { display:flex; flex-direction:column; gap:6px; }
+    .tag { display:inline-flex; align-items:center; border-radius:999px; padding:4px 8px; font-size:.72rem; font-weight:700; border:1px solid var(--line); }
+    .tag.high { color:#ffc3cf; border-color:rgba(255,120,144,.35); background:rgba(255,120,144,.08); }
+    .tag.medium { color:#f9d77a; border-color:rgba(255,209,102,.35); background:rgba(255,209,102,.08); }
+    .tag.low { color:#a9f4d9; border-color:rgba(116,245,202,.35); background:rgba(116,245,202,.08); }
+    .tracker-box { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .tracker-chip { border:1px solid var(--line); border-radius:999px; padding:6px 10px; font-size:.76rem; background:rgba(255,255,255,.02); }
+    .code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.78rem; color:var(--text); }
+    .section-space { margin-top:18px; }
     @media (max-width:900px) { .grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .layout { grid-template-columns:1fr; } }
-    @media (max-width:540px) { .grid { grid-template-columns:1fr; } .chat-form { grid-template-columns:1fr; } }
+    @media (max-width:540px) { .grid { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
@@ -46,231 +50,178 @@
       <div class="brand"><span class="logo">⌁</span> tracecheck</div>
       <div class="nav">
         <a href="/">Scanner</a>
-        <a href="/settings.html">Settings</a>
+        <a href="/dashboard.html">Dashboard</a>
         <a href="/history.html">History</a>
       </div>
     </div>
 
-    <section class="grid" id="stats-grid">
-      <article class="card"><div class="label">Saved scans</div><div class="value" id="saved-count">0</div></article>
-      <article class="card"><div class="label">Favorites</div><div class="value" id="favorite-count">0</div></article>
-      <article class="card"><div class="label">High risk</div><div class="value" id="high-risk">0</div></article>
-      <article class="card"><div class="label">Avg. risk</div><div class="value" id="avg-risk">0</div></article>
+    <section class="hero">
+      <div>
+        <div class="label" style="margin-bottom:8px;">Privacy report</div>
+        <h1 class="site-title" id="site-title">Loading…</h1>
+      </div>
+      <div id="risk-badge" class="status-badge">Loading</div>
+    </section>
+
+    <section class="grid">
+      <article class="card"><div class="label">Risk score</div><div class="value" id="risk-score">0</div></article>
+      <article class="card"><div class="label">Trackers</div><div class="value" id="tracker-count">0</div></article>
+      <article class="card"><div class="label">Third-party</div><div class="value" id="third-party-count">0</div></article>
+      <article class="card"><div class="label">Cookies</div><div class="value" id="cookie-count">0</div></article>
     </section>
 
     <section class="layout">
       <div class="panel">
-        <h2>Saved reports</h2>
-        <ul id="report-list" class="report-list"></ul>
+        <h3>Who is tracking you?</h3>
+        <div id="tracking-summary" class="muted">Loading…</div>
+        <div id="tracker-chips" class="tracker-box"></div>
       </div>
 
       <div class="panel">
-        <h2>Favorite domains</h2>
-        <ul id="favorite-list" class="favorite-list"></ul>
-        <div class="summary" id="summary-box">No saved scans yet. Run a scan and save it to your dashboard.</div>
+        <h3>What the site collects</h3>
+        <div id="collection-summary" class="muted">Loading…</div>
       </div>
     </section>
 
-    <section class="layout" style="margin-top:18px;">
+    <section class="layout section-space">
       <div class="panel">
-        <h2>AI recommendations</h2>
-        <ul id="recommendation-list" class="recommendation-list"></ul>
+        <h3>Findings</h3>
+        <ul id="finding-list" class="list"></ul>
       </div>
 
       <div class="panel">
-        <h2>Dashboard AI</h2>
-        <div id="chat-box" class="chat-box"></div>
-        <form id="chat-form" class="chat-form">
-          <input id="chat-input" type="text" placeholder="Ask about your latest report…" autocomplete="off" />
-          <button type="submit">Ask</button>
-        </form>
+        <h3>Runtime tracking</h3>
+        <ul id="runtime-list" class="list"></ul>
+      </div>
+    </section>
+
+    <section class="layout section-space">
+      <div class="panel">
+        <h3>Security headers</h3>
+        <ul id="header-list" class="list"></ul>
+      </div>
+
+      <div class="panel">
+        <h3>Cookies</h3>
+        <ul id="cookie-list" class="list"></ul>
       </div>
     </section>
   </main>
 
   <script>
-    const reportList = document.querySelector('#report-list');
-    const favoriteList = document.querySelector('#favorite-list');
-    const summaryBox = document.querySelector('#summary-box');
-    const recommendationList = document.querySelector('#recommendation-list');
-    const chatBox = document.querySelector('#chat-box');
-    const chatForm = document.querySelector('#chat-form');
-    const chatInput = document.querySelector('#chat-input');
-
-    const STORAGE_KEYS = {
-      saved: 'tracecheck.savedScans',
-      favorites: 'tracecheck.favorites',
-      settings: 'tracecheck.settings'
-    };
-
-    function loadStorage(key, fallback) {
-      try {
-        const raw = localStorage.getItem(key);
-        return raw ? JSON.parse(raw) : fallback;
-      } catch {
-        return fallback;
-      }
-    }
-
     function escapeHtml(value) {
-      return String(value).replace(/[&<>'"]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;' }[m]));
+      return String(value).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
     }
 
-    function scoreToLevel(score) {
-      if (score >= 7) return 'high';
-      if (score >= 3) return 'medium';
+    function buildStatusClass(level) {
+      if (level === 'high') return 'status-high';
+      if (level === 'medium') return 'status-medium';
+      return 'status-low';
+    }
+
+    function getRiskClass(level) {
+      if (level === 'high') return 'high';
+      if (level === 'medium') return 'medium';
       return 'low';
     }
 
-    function buildRecommendations(report) {
-      const findings = Array.isArray(report?.findings) ? report.findings : [];
-      const securityPresent = Number(report?.security?.present || 0);
-      const securityTotal = Number(report?.security?.total || 0);
-      const thirdPartyCount = Array.isArray(report?.externalDomains) ? report.externalDomains.length : 0;
-      const trackerCount = findings.filter((item) => item.category === 'Tracker' || item.name?.toLowerCase().includes('tracker')).length;
-      const cookieRisk = (report?.cookies || []).filter((cookie) => Boolean(cookie.risky)).length;
-      const fingerprinting = findings.filter((item) => item.category === 'Fingerprinting').length;
-      const recs = [];
-
-      if (trackerCount > 0) {
-        recs.push({
-          title: 'Reduce tracking scripts',
-          detail: `This site includes ${trackerCount} tracking-related finding${trackerCount > 1 ? 's' : ''}. Remove or limit analytics and ad scripts to reduce privacy exposure.`
-        });
-      }
-
-      if (cookieRisk > 0) {
-        recs.push({
-          title: 'Audit cookie behavior',
-          detail: `There are ${cookieRisk} cookie entries with risky behavior. Review lifetime, consent handling, and third-party access.`
-        });
-      }
-
-      if (securityPresent < securityTotal) {
-        recs.push({
-          title: 'Tighten security headers',
-          detail: `${securityPresent}/${securityTotal} security headers are currently present. Strengthen CSP, HSTS, and X-Frame-Options coverage.`
-        });
-      }
-
-      if (fingerprinting > 0 || thirdPartyCount > 0) {
-        recs.push({
-          title: 'Limit fingerprinting and third-party domains',
-          detail: `${fingerprinting} fingerprinting signal${fingerprinting === 1 ? '' : 's'} and ${thirdPartyCount} third-party domain${thirdPartyCount === 1 ? '' : 's'} were detected. Reduce external dependencies and device introspection.`
-        });
-      }
-
-      if (!recs.length) {
-        recs.push({
-          title: 'Good baseline',
-          detail: 'No major privacy issues were detected in the inspected page source. Continue monitoring for changes over time.'
-        });
-      }
-
-      return recs.slice(0, 4);
+    function getQueryParam(name) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(name);
     }
 
-    function renderRecommendations(saved) {
-      if (!saved.length) {
-        recommendationList.innerHTML = '<li><strong>No data yet</strong><div class="muted">Run a scan to unlock recommendations.</div></li>';
+    function loadReport() {
+      const id = getQueryParam('id');
+      const saved = JSON.parse(localStorage.getItem('tracecheck.savedScans') || '[]');
+      const report = saved.find((item) => item.id === id) || saved[0] || null;
+
+      if (!report) {
+        document.querySelector('#site-title').textContent = 'No report found';
+        document.querySelector('#tracking-summary').textContent = 'Run a scan to generate a privacy report.';
         return;
       }
 
-      const latest = saved[0];
-      const recs = buildRecommendations(latest);
-      recommendationList.innerHTML = recs.map((item, index) => `
-        <li data-rank="${index + 1}">
-          <strong>${escapeHtml(item.title)}</strong>
-          <div class="muted">${escapeHtml(item.detail)}</div>
+      const trackerNames = [...new Set((report.findings || []).filter((item) => item.category === 'Tracker').map((item) => item.name))];
+      const runtimeTracking = Array.isArray(report.runtimeTracking?.matchedTrackers) ? report.runtimeTracking.matchedTrackers : [];
+      const matchedDomains = runtimeTracking.map((item) => item.domain).filter(Boolean);
+      const allTrackers = [...new Set([...trackerNames, ...runtimeTracking.flatMap((item) => item.trackers || [])])];
+
+      const riskLevel = report.risk?.level || 'low';
+      const riskScore = report.risk?.score || 0;
+
+      document.querySelector('#site-title').textContent = report.url || 'Unknown site';
+      document.querySelector('#risk-badge').textContent = `${riskLevel} risk`;
+      document.querySelector('#risk-badge').className = `status-badge ${buildStatusClass(riskLevel)}`;
+      document.querySelector('#risk-score').textContent = riskScore;
+      document.querySelector('#tracker-count').textContent = (report.findings || []).filter((item) => item.category === 'Tracker' || item.category === 'Runtime Tracking').length;
+      document.querySelector('#third-party-count').textContent = (report.externalDomains || []).length;
+      document.querySelector('#cookie-count').textContent = (report.cookies || []).length;
+
+      const trackingSummary = allTrackers.length
+        ? `This site appears to contact or load: ${allTrackers.join(', ')}.`
+        : 'No clear tracker names were matched in the current scan.';
+      document.querySelector('#tracking-summary').textContent = trackingSummary;
+
+      const trackerChipHtml = allTrackers.length
+        ? allTrackers.map((name) => `<span class="tracker-chip">${escapeHtml(name)}</span>`).join('')
+        : '<span class="muted">No trackers detected</span>';
+      document.querySelector('#tracker-chips').innerHTML = trackerChipHtml;
+
+      const collectionSummary = Array.isArray(report.dataTracking?.items) && report.dataTracking.items.length
+        ? `${report.dataTracking.items.length} tracking indicators were identified, including cookie, session, and behavioral collection signals.`
+        : 'No obvious data collection indicators were found in the current scan.';
+      document.querySelector('#collection-summary').textContent = collectionSummary;
+
+      const findingList = document.querySelector('#finding-list');
+      const findingItems = Array.isArray(report.findings) ? report.findings : [];
+      findingList.innerHTML = findingItems.length
+        ? findingItems.slice(0, 12).map((item) => `
+          <li>
+            <div class="finding">
+              <div><strong>${escapeHtml(item.name || 'Finding')}</strong> <span class="tag ${getRiskClass(item.severity || 'low')}">${escapeHtml((item.severity || 'low').toUpperCase())}</span></div>
+              <div class="muted">${escapeHtml(item.detail || 'No detail provided')}</div>
+              <small>${escapeHtml(item.category || 'General')}</small>
+            </div>
+          </li>
+        `).join('')
+        : '<li><div class="muted">No findings were found.</div></li>';
+
+      const runtimeList = document.querySelector('#runtime-list');
+      const runtimeItems = Array.isArray(report.runtimeTracking?.matchedTrackers) ? report.runtimeTracking.matchedTrackers : [];
+      runtimeList.innerHTML = runtimeItems.length
+        ? runtimeItems.slice(0, 10).map((item) => `
+          <li>
+            <div class="finding">
+              <div><strong>${escapeHtml((item.trackers || ['Tracking domain']).join(', '))}</strong></div>
+              <div class="muted code">${escapeHtml(item.domain || 'unknown')}</div>
+              <small>${escapeHtml(item.resourceType || 'request')}</small>
+            </div>
+          </li>
+        `).join('')
+        : '<li><div class="muted">No runtime tracking domains were detected.</div></li>';
+
+      const headerList = document.querySelector('#header-list');
+      const headers = report.headers || {};
+      headerList.innerHTML = Object.entries(headers).map(([key, value]) => `
+        <li>
+          <strong>${escapeHtml(key)}</strong>
+          <small class="code">${escapeHtml(value || 'missing')}</small>
         </li>
-      `).join('');
-    }
+      `).join('') || '<li><div class="muted">No headers available.</div></li>';
 
-    function addChat(role, text) {
-      const div = document.createElement('div');
-      div.className = `bubble ${role}`;
-      div.innerHTML = escapeHtml(text).replace(/\n/g, '<br>');
-      chatBox.appendChild(div);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    function renderDashboard() {
-      const saved = loadStorage(STORAGE_KEYS.saved, []);
-      const favorites = loadStorage(STORAGE_KEYS.favorites, []);
-      const total = saved.length;
-      const highRisk = saved.filter((r) => (r.risk?.level || 'low') === 'high').length;
-      const avgRisk = total ? Math.round(saved.reduce((sum, r) => sum + (r.risk?.score || 0), 0) / total) : 0;
-
-      document.querySelector('#saved-count').textContent = total;
-      document.querySelector('#favorite-count').textContent = favorites.length;
-      document.querySelector('#high-risk').textContent = highRisk;
-      document.querySelector('#avg-risk').textContent = avgRisk;
-
-      if (!total) {
-        reportList.innerHTML = '<li><small>No saved reports yet.</small></li>';
-      } else {
-        reportList.innerHTML = saved.slice(0, 12).map((report) => `
+      const cookieList = document.querySelector('#cookie-list');
+      const cookies = Array.isArray(report.cookies) ? report.cookies : [];
+      cookieList.innerHTML = cookies.length
+        ? cookies.slice(0, 10).map((cookie) => `
           <li>
-            <a href="/report.html?id=${encodeURIComponent(report.id)}">${escapeHtml(report.url)}</a>
-            <small>${escapeHtml(report.risk?.level || 'unknown')} · ${new Date(report.fetchedAt || report.createdAt).toLocaleString()}</small>
+            <strong>${escapeHtml(cookie.name || 'Unnamed cookie')}</strong>
+            <small>${escapeHtml(cookie.attributes?.join(', ') || 'No attribute list')}</small>
           </li>
-        `).join('');
-      }
-
-      if (!favorites.length) {
-        favoriteList.innerHTML = '<li><small>No favorite domains yet.</small></li>';
-      } else {
-        favoriteList.innerHTML = favorites.slice(0, 10).map((url) => `
-          <li>
-            <a href="/report.html?id=${encodeURIComponent(url)}">${escapeHtml(url)}</a>
-            <small>Favorite domain</small>
-          </li>
-        `).join('');
-      }
-
-      if (!total) {
-        summaryBox.textContent = 'No saved scans yet. Run a scan and save it to your dashboard.';
-      } else {
-        const newest = saved[0];
-        summaryBox.textContent = `Most recent: ${newest.url} · ${newest.risk?.level || 'unknown'} risk.`;
-      }
-
-      renderRecommendations(saved);
-
-      chatBox.innerHTML = '';
-      if (saved.length) {
-        addChat('ai', `AI is ready. Suggested priorities for ${saved[0].url}: ${buildRecommendations(saved[0]).slice(0,2).map((item) => item.title).join(' • ')}`);
-      } else {
-        addChat('ai', 'No reports have been saved yet. Run a scan and save it to unlock recommendations and analysis.');
-      }
+        `).join('')
+        : '<li><div class="muted">No cookies detected.</div></li>';
     }
 
-    async function askAi(question) {
-      const saved = loadStorage(STORAGE_KEYS.saved, []);
-      const latest = saved[0] || null;
-
-      addChat('user', question);
-      chatInput.value = '';
-
-      if (!latest) {
-        addChat('ai', 'No report is available yet. Run a scan first so the dashboard has context.');
-        return;
-      }
-
-      const recs = buildRecommendations(latest);
-      const answer = `This site is currently ${latest.risk?.level || 'unknown'} risk with ${latest.findings?.length || 0} findings. The top actions are: ${recs.map((item) => item.title).join('; ')}.`;
-      addChat('ai', answer);
-    }
-
-    chatForm.addEventListener('submit', (event) => {
-      event.preventDefault();
-      const value = chatInput.value.trim();
-      if (!value) return;
-      askAi(value);
-    });
-
-    renderDashboard();
-    window.addEventListener('storage', renderDashboard);
+    loadReport();
   </script>
 </body>
 </html>
